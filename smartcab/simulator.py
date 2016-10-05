@@ -17,6 +17,7 @@ class Simulator(object):
         'blue'    : (  0,   0, 255),
         'cyan'    : (  0, 200, 200),
         'magenta' : (200,   0, 200),
+        'taxi'  : (255, 255,   0),
         'yellow'  : (255, 255,   0),
         'orange'  : (255, 128,   0)
     }
