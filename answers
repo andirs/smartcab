@@ -1,0 +1,7 @@
+QUESTION: Observe what you see with the agent's behavior as it takes random actions. Does the smartcab eventually make it to the destination? Are there any other interesting observations to note?
+
+While performing random actions there are a couple observations one can make:
+* The agent reaches the goal 'by accident'
+* When crashing, cars will restart at a different location and start to drive
+* There is a reward system in place that shows the immediate gratification of an action
+* There are 3 other agents or cars in play
