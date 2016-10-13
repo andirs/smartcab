@@ -121,26 +121,14 @@ class LearningAgent(Agent):
 
         self.trial_count += 1
 
-def run():
-    """Run the agent for a finite number of trials."""
-
-    # Set up environment and agent
-    e = Environment()  # create environment (also adds some dummy traffic)
-    a = e.create_agent(LearningAgent)  # create agent
-    e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
-    # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
-
-    # Now simulate it
-    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
-    # NOTE: To speed up simulation, reduce update_delay and/or set display=False
-
-    feature_comparison = False
-
-    # Do feature comparison based on sets of list (WIP)
-    if feature_comparison:
-        alpha_list = [.05, .1, .2, .5, .7, .8, .9, .95, 1]
-        gamma_list = [.05, .1, .2, .5, .7, .8, .9, .95, 1]
-        epsilon_list = [.05, .1, .2, .5, .7, .8, .9, .95, 1]
+    def feature_comparison(self, 
+        alpha = [.05, .1, .2, .5, .7, .8, .9, .95, 1], 
+        gamma = [.05, .1, .2, .5, .7, .8, .9, .95, 1],
+        epsilon = [.05, .1, .2, .5, .7, .8, .9, .95, 1]):
+        '''Do feature comparison based on sets of list (WIP)'''
+        alpha_list = alpha
+        gamma_list = gamma
+        epsilon_list = epsilon
 
         feature_summary = pd.DataFrame(
             columns = ['alpha', 'gamma', 'epsilon', 'success', 'no_success', 'steps'])
@@ -165,6 +153,20 @@ def run():
                         sim.run(n_trials=100)
                         success_temp = pd.DataFrame.from_dict(a.trial_summary, orient='columns')
                         #success_temp.index = ['no_success', 'success', 'steps']
+
+
+def run():
+    """Run the agent for a finite number of trials."""
+
+    # Set up environment and agent
+    e = Environment()  # create environment (also adds some dummy traffic)
+    a = e.create_agent(LearningAgent)  # create agent
+    e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
+    # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
+
+    # Now simulate it
+    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
+    # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
 
     success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps'])
