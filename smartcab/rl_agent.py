@@ -26,7 +26,7 @@ class LearningAgent(Agent):
         # Set learning discount gamma (between 0, 1)
         self.gamma = .2
         # Set randomness threshold
-        self.epsilon = 1
+        self.epsilon = .95
 
         # Initialize variables to store previous state, reward amd action
         self.prev_rewards = None
@@ -53,11 +53,11 @@ class LearningAgent(Agent):
         random_threshold = random.random()
         # Check if state exists in qtable already
         if qtable.has_key(state):
-            # Determine maximum of Q value(s) for given state
-            q_max = max(qtable[state].values())
             # Check if random threshold is smaller or equal epsilon
             # to account for randomness factor
-            if random_threshold <= self.epsilon:
+            if random_threshold < self.epsilon:
+                # Determine maximum of Q value(s) for given state
+                q_max = max(qtable[state].values())
                 action_set = {action:q_new for action, q_new in qtable[state].items() if q_new == q_max}
                 action = random.choice(action_set.keys())
             else:
@@ -134,11 +134,44 @@ def run():
     sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
+    feature_comparison = False
+
+    # Do feature comparison based on sets of list (WIP)
+    if feature_comparison:
+        alpha_list = [.05, .1, .2, .5, .7, .8, .9, .95, 1]
+        gamma_list = [.05, .1, .2, .5, .7, .8, .9, .95, 1]
+        epsilon_list = [.05, .1, .2, .5, .7, .8, .9, .95, 1]
+
+        feature_summary = pd.DataFrame(
+            columns = ['alpha', 'gamma', 'epsilon', 'success', 'no_success', 'steps'])
+
+        for alpha in alpha_list:
+            for gamma in gamma_list:
+                for epsilon in epsilon_list:
+
+                    combination_name = [alpha, gamma, epsilon] # if needed
+                    e = Environment()
+                    a = e.create_agent(LearningAgent)
+
+                    a.alpha = alpha
+                    a.gamma = gamma
+                    a.epsilon = epsilon
+
+                    e.set_primary_agent(a, enforce_deadline=True)
+                    sim = Simulator(e, update_delay=0, display=False)
+
+                    validation_no = 10
+                    for i in range(validation_no):
+                        sim.run(n_trials=100)
+                        success_temp = pd.DataFrame.from_dict(a.trial_summary, orient='columns')
+                        #success_temp.index = ['no_success', 'success', 'steps']
+
+
     success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps'])
-    validation_no = 10
+    validation_no = 5
 
     for i in range(validation_no):
-        sim.run(n_trials=500)  # run for a specified number of trials
+        sim.run(n_trials=100)  # run for a specified number of trials
         # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 
         print "Trial Count: ", a.trial_count
