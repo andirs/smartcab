@@ -21,25 +21,42 @@ class LearningAgent(Agent):
         self.alpha = 0
         # Gamma value
         self.gamma = 0
+        # Epsilon
+        self.epsilon = 0
 
-        self.state_prev = 0
-        self.action_prev = 0
-        self.reward_prev = 0
+        self.state_prev = None
+        self.action_prev = None
+        self.reward_prev = None
 
 
 
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
+        
+        # For debugging purposes
+        print "############ Q table at step:", self.step_count
+        print self.qtable
+
         # TODO: Prepare for a new trip; reset any variables here, if required
         # Set step_count to 0 for the new trip
         self.step_count = 0
-        # For debugging purposes
-        print self.qtable
+
 
     def max_action(self, state, qtable):
     	return {action:Q for action, Q in qtable[state].items() if Q == max(
     		qtable[state].values())}
+
+    def update_state(self):
+    	'''Updates state according to combination out of inputs'''
+    	inputs = self.env.sense(self)
+    	return (
+    		('waypoint', self.next_waypoint),
+    		('traffic_light', inputs['light']),
+    		('oncoming', inputs['oncoming']),
+    		('left', inputs['left']),
+    		('right', inputs['right'])
+    		)
 
     def learn_policy(self, qtable):
     	Q_val = self.qtable[self.state_prev][self.action_prev]
@@ -54,20 +71,19 @@ class LearningAgent(Agent):
         deadline = self.env.get_deadline(self)
         self.lesson_count += 1
 
-        # Update state according to combination out of inputs
-        self.state = (
-        	('waypoint', self.next_waypoint), 
-        	('traffic_light', inputs['light']), 
-        	('oncoming', inputs['oncoming']), 
-        	('left', inputs['left'])
-        	)
+        # Update state
+        self.state = self.update_state()
 
         # Select action according to your policy
         # See if state exists in dictionary already
         if self.qtable.has_key(self.state):
         	# If so, get action with best value 
         	# (if multiple exist pick a random from the set of actions)
+        	print self.qtable
         	best_action = self.max_action(self.state, self.qtable)
+        	print "################################"
+        	print best_action
+        	print "################################"
         	action = random.choice(best_action)
         else:
         	self.qtable.update({self.state : {None : 0, 'forward' : 0, 'left' : 0, 'right' : 0}})
