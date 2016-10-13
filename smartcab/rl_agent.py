@@ -22,7 +22,7 @@ class LearningAgent(Agent):
         self.learn_count = 0
 
         # Set learning rate alpha (between 0, 1)
-        self.alpha = 1
+        self.alpha = .9
         # Set learning discount gamma (between 0, 1)
         self.gamma = .2
         # Set randomness threshold
@@ -61,7 +61,7 @@ class LearningAgent(Agent):
                 action_set = {action:q_new for action, q_new in qtable[state].items() if q_new == q_max}
                 action = random.choice(action_set.keys())
             else:
-                action = qtable.index(q_max)
+                action = random.choice(qtable[state].keys())
         else:
             qtable.update({state : {None : q_start, 'forward' : q_start, 'left' : q_start, 'right' : q_start}})
             action = random.choice(action_set)
@@ -69,7 +69,7 @@ class LearningAgent(Agent):
 
     def learn_policy(self, qtable, state, alpha, gamma, t):
         if self.trial_count > 0:
-            alpha = alpha/float(self.trial_count)
+            #alpha = alpha/float(self.trial_count)
             q_new = qtable[self.prev_state][self.prev_action]
             q_new = q_new + (alpha * (self.prev_rewards + (gamma * (max(qtable[state].values()))) - q_new))
             qtable[self.prev_state][self.prev_action] = q_new
@@ -131,7 +131,7 @@ def run():
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
     # Now simulate it
-    sim = Simulator(e, update_delay=0.5, display=True)  # create simulator (uses pygame when display=True, if available)
+    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
     success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps'])
