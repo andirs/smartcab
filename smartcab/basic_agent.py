@@ -61,7 +61,7 @@ def run():
     # Set up environment and agent
     e = Environment()  # create environment (also adds some dummy traffic)
     a = e.create_agent(LearningAgent)  # create agent
-    e.set_primary_agent(a, enforce_deadline=False)  # specify agent to track
+    e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
     # Now simulate it
@@ -69,7 +69,7 @@ def run():
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
     success_summary = pd.DataFrame(index = ['no_success', 'success'])
-    validation_no = 1
+    validation_no = 10
 
     for i in range(validation_no):
         sim.run(n_trials=100)  # run for a specified number of trials
@@ -87,7 +87,12 @@ def run():
     success_average = success_summary.mean(axis=1)
     print "Average: "
     print success_average
-    print "Percentage: ", success_average[0:][1] / success_average[0:][0] 
+    print "Percentage: ", success_average[0:][1] / success_average[0:][0]
+
+    import os
+    filename = 'smartcab/data/basic_agent_trials.csv'
+    filename = os.path.join(filename)
+    success_summary.to_csv(filename)
 
 if __name__ == '__main__':
     run()

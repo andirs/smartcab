@@ -26,7 +26,7 @@ class LearningAgent(Agent):
         # Set learning discount gamma (between 0, 1)
         self.gamma = .2
         # Set randomness threshold
-        self.epsilon = 1
+        self.epsilon = .95
 
         # Initialize variables to store previous state, reward amd action
         self.prev_rewards = None
@@ -36,12 +36,13 @@ class LearningAgent(Agent):
         # Crete statistic variables & dicts
         self.trial_count = 0
         self.trial_summary = {}
-        for i in range(2):
+        for i in range(3):
             self.trial_summary[i] = 0
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
         # Set trial_count to 0 again
+        self.trial_summary[2] = self.trial_count
         self.trial_count = 0
 
     def best_action(self, qtable, state, t):
@@ -49,7 +50,7 @@ class LearningAgent(Agent):
         action_set = [None, 'forward', 'left', 'right']
         # Determine random threshold by float in between (0, 1) with
         # moving towards 0 for large t
-        random_threshold = random.random()/float(t+1)
+        random_threshold = random.random()
         # Check if state exists in qtable already
         if qtable.has_key(state):
             # Determine maximum of Q value(s) for given state
@@ -126,27 +127,28 @@ def run():
     # Set up environment and agent
     e = Environment()  # create environment (also adds some dummy traffic)
     a = e.create_agent(LearningAgent)  # create agent
-    e.set_primary_agent(a, enforce_deadline=False)  # specify agent to track
+    e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
     # Now simulate it
-    sim = Simulator(e, update_delay=0.5, display=True)  # create simulator (uses pygame when display=True, if available)
+    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
-    success_summary = pd.DataFrame(index = ['no_success', 'success'])
-    validation_no = 1
+    success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps'])
+    validation_no = 5
 
     for i in range(validation_no):
-        sim.run(n_trials=100)  # run for a specified number of trials
+        sim.run(n_trials=500)  # run for a specified number of trials
         # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 
         print "Trial Count: ", a.trial_count
         success_temp = pd.DataFrame.from_dict(a.trial_summary, orient='index')
-        success_temp.index = ['no_success', 'success']
+        success_temp.index = ['no_success', 'success', 'steps']
         temp_column_name = 'trial_count_' + str(i+1)
         success_summary[temp_column_name] = success_temp
         a.trial_summary[0] = 0
         a.trial_summary[1] = 0
+        a.trial_summary[2] = 0
 
     for row in a.qtable.iteritems():
         print row
