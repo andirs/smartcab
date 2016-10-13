@@ -26,7 +26,7 @@ class LearningAgent(Agent):
         # Set learning discount gamma (between 0, 1)
         self.gamma = .2
         # Set randomness threshold
-        self.epsilon = .95
+        self.epsilon = 1
 
         # Initialize variables to store previous state, reward amd action
         self.prev_rewards = None
@@ -61,7 +61,7 @@ class LearningAgent(Agent):
                 action_set = {action:q_new for action, q_new in qtable[state].items() if q_new == q_max}
                 action = random.choice(action_set.keys())
             else:
-                action = random.choice(q_max)
+                action = qtable.index(q_max)
         else:
             qtable.update({state : {None : q_start, 'forward' : q_start, 'left' : q_start, 'right' : q_start}})
             action = random.choice(action_set)
@@ -131,11 +131,11 @@ def run():
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
     # Now simulate it
-    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
+    sim = Simulator(e, update_delay=0.5, display=True)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
     success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps'])
-    validation_no = 5
+    validation_no = 10
 
     for i in range(validation_no):
         sim.run(n_trials=500)  # run for a specified number of trials
@@ -156,7 +156,7 @@ def run():
     success_average = success_summary.mean(axis=1)[0:]
     print "Average: "
     print success_average
-    print "Percentage: ", min(success_average) / max(success_average) 
+    print "Accuracy: ", min(success_average) / max(success_average) 
 
 if __name__ == '__main__':
     run()
