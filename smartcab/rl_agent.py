@@ -124,7 +124,6 @@ class LearningAgent(Agent):
                 gamma = (1 / (1+math.exp(t/2)))
 
         if self.trial_count > 0:
-            #alpha = alpha/float(self.trial_count)
             q_new = qtable[self.prev_state][self.prev_action]
             q_new = (1-alpha) * q_new + (alpha * (self.prev_rewards + (gamma * (max(qtable[state].values())))))
             qtable[self.prev_state][self.prev_action] = q_new
@@ -166,23 +165,6 @@ class LearningAgent(Agent):
         self.prev_state = self.state
         self.prev_action = action
         self.prev_rewards = reward
-
-        # Create stats about reaching the goal
-        '''
-        if (deadline == 0) & (reward < 8):
-            #self.trial_summary[0] += 1
-            #self.deadline_end_col.append(0)
-            print "#" * 20
-            print "Trial was unsuccessful."
-            print "#" * 20
-        else:
-            if (reward >= 8):
-                #self.trial_summary[1] += 1
-                #self.deadline_end_col.append(self.env.get_deadline(self))
-                print "#" * 20
-                print "Trial was successful."
-                print "#" * 20
-        '''
 
         self.trial_count += 1
 
