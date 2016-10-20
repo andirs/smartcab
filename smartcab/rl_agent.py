@@ -81,10 +81,10 @@ class LearningAgent(Agent):
 
             # Sigmoid function for epsilon that moves towards 
             # 1 with high time step t
-            self.epsilon = (1 / (1 + math.exp(-t)))
+            self.epsilon = (1 / (1 + math.exp(t)))
         elif self.epsilon == 99:
             # 'Slower' sigmoid function
-            self.epsilon = (1 / (1 + math.exp((-t/2))))
+            self.epsilon = (1 / (1 + math.exp((t/2))))
         # Check if state exists in qtable already
         if qtable.has_key(state):
             # Check if random threshold is smaller or equal epsilon
@@ -379,8 +379,8 @@ def run():
     #a.feature_comparison(output='feature_comparison_ae_slow_sig.csv', epsilon=[1], alpha=[1])
 
     #a.feature_comparison(output='feature_comparison_grand_finale.csv')
-    a.feature_comparison(
-        alpha=[9], gamma=[9], epsilon=[1], output='verify.csv')
+    #a.feature_comparison(alpha=[9], gamma=[9], epsilon=[1], output='verify.csv')
+    a.feature_comparison(output='feature_comparison_grand_finale_epa.csv')
     #a.feature_comparison(output='test4.csv', epsilon=[1], alpha=[1])
 
     
