@@ -3,6 +3,7 @@ import numpy as np
 import random
 from collections import Counter
 from environment import Agent, Environment
+from operator import add
 from planner import RoutePlanner
 from simulator import Simulator
 import math
@@ -23,6 +24,11 @@ class LearningAgent(Agent):
         # Counts the steps our algorithm has learned
         self.learn_count = 0
 
+        # Time Series information
+        self.cycles = 0 # How many cycles did the program run through
+        self.time_count_pos = [0] * 100
+        self.time_count_neg = [0] * 100
+
         self.deadline_start = 0
         self.deadline_start_col = []
         self.deadline_end_col = []
@@ -33,6 +39,8 @@ class LearningAgent(Agent):
         self.gamma = .2
         # Set randomness threshold
         self.epsilon = .95
+        self.q_start = {None : 10, 'forward': 10, 'left': 10, 'right': 10}
+        self.q_start_count = {None : 0, 'forward': 0, 'left': 0, 'right': 0}
 
         # Initialize variables to store previous state, reward amd action
         self.prev_rewards = None
@@ -54,10 +62,13 @@ class LearningAgent(Agent):
     def success_stats(self, suc):
         if (suc):
             self.trial_summary[1] += 1
+            self.time_count_pos[self.cycles] += 1
         else:
             self.trial_summary[0] += 1
+            self.time_count_neg[self.cycles] += 1
 
     def reset(self, destination=None):
+        self.cycles += 1
         self.planner.route_to(destination)
         # Set trial_count to 0 again
         self.trial_summary[2] = self.trial_count
@@ -72,19 +83,19 @@ class LearningAgent(Agent):
                 Decide with a certain randomness whether to
                 take the best action available or a comlete random action.
         '''
-        q_start = 0
         action_set = [None, 'forward', 'left', 'right']
         # Determine random threshold by float in between (0, 1) with
         # moving towards 0 for large t
         random_threshold = random.random()
         if self.epsilon == 9:
-
-            # Sigmoid function for epsilon that moves towards 
-            # 1 with high time step t
-            self.epsilon = (1 / (1 + math.exp(t)))
+            # Sigmoid function for epsilon that moves towards 1
+            self.epsilon = (1 / (1 + math.exp(-t)))
         elif self.epsilon == 99:
             # 'Slower' sigmoid function
-            self.epsilon = (1 / (1 + math.exp((t/2))))
+            self.epsilon = (1 / (1 + math.exp((-t/2))))
+        elif self.epsilon == 999:
+            # Even 'slower' sigmoid function
+            self.epsilon = (1 / (1 + math.exp((-t/3))))
         # Check if state exists in qtable already
         if qtable.has_key(state):
             # Check if random threshold is smaller or equal epsilon
@@ -100,8 +111,9 @@ class LearningAgent(Agent):
                 action = random.choice(action_set)
         else:
         	# Initialize new state using q_start
-            qtable.update({state : {None : q_start, 'forward' : q_start, 'left' : q_start, 'right' : q_start}})
+            qtable.update({state : {None : self.q_start[None], 'forward' : self.q_start['forward'], 'left' : self.q_start['left'], 'right' : self.q_start['right']}})
             action = random.choice(action_set)
+            self.q_start_count[action] += 1
         return action
 
     def learn_policy(self, qtable, state, alpha, gamma, t):
@@ -109,19 +121,31 @@ class LearningAgent(Agent):
         Learn policy based on alpha, gamma 
         and previous rewards.
         '''
+        if alpha > 8:
+            # Make sigmoid start at almost 0
+            t_alpha = t-5
         if alpha == 9:
             # Sigmoid function that moves towards zero for high t
-            alpha = (1 / (1+math.exp(t)))
+            alpha = (1 / (1+math.exp(t_alpha)))
         elif alpha == 99:
             # 'Slower' sigmoid function
-            alpha = (1 / (1+math.exp(t/2)))
+            alpha = (1 / (1+math.exp(t_alpha/2)))
+        elif alpha == 999:
+            # Even 'slower' sigmoid function
+            alpha = (1 / (1+math.exp(t_alpha/3)))
 
+        if gamma > 8:
+            # Make sigmoid start at almost 0
+            t_gamma = t-5
         if gamma == 9:
             # Sigmoid function for gamma
-            gamma = (1 / (1+math.exp(t)))
+            gamma = (1 / (1+math.exp(-t_gamma)))
         elif gamma == 99:
-                # Slow sigmoid function for gamma
-                gamma = (1 / (1+math.exp(t/2)))
+            # Slow sigmoid function for gamma
+            gamma = (1 / (1+math.exp(-t_gamma/2)))
+        elif gamma == 999:
+            # Slow sigmoid function for gamma
+            gamma = (1 / (1+math.exp(-t_gamma/3)))
 
         if self.trial_count > 0:
             q_new = qtable[self.prev_state][self.prev_action]
@@ -154,7 +178,8 @@ class LearningAgent(Agent):
 
         # Execute action and get reward
         reward = self.env.act(self, action)
-
+        #if (self.q_start_count[action] == 1):
+        #    self.q_start[action] = reward
         #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
 
         # Learn policy based on state, alpha, gamma and t
@@ -173,7 +198,7 @@ class LearningAgent(Agent):
         alpha = [.05, .3, .6, .9, 1, 9, 99], 
         gamma = [.05, .3, .6, .9, 1, 9, 99],
         epsilon = [.05, .3, .6, .9, 1, 9, 99],
-        cv = 5,
+        cv = 1,
         ntrials = 100):
         '''
         Do feature comparison based on sets of list.
@@ -187,6 +212,9 @@ class LearningAgent(Agent):
         o_dir = 'smartcab/data'
         if not os.path.exists(o_dir):
             os.makedirs(o_dir)
+
+        # Time Series Setup
+        ts_store = {}
 
         # For naming conventions
         alpha_list = alpha
@@ -216,6 +244,12 @@ class LearningAgent(Agent):
                     a.alpha = alpha
                     a.gamma = gamma
                     a.epsilon = epsilon
+
+                    # Set up time slot summary for all trials
+                    sum_counts_neg = [0] * 100
+                    sum_counts_pos = [0] * 100
+                    temp_store = {}
+
 
                     # Prepare simulation details
                     e.set_primary_agent(a, enforce_deadline=True)
@@ -251,6 +285,19 @@ class LearningAgent(Agent):
                         a.trial_summary[5] = 0
                         a.deadline_start_col = []
                         a.deadline_end_col = []
+
+                        # Sum up counts per time slot for negative
+                        # and positive outcomes
+                        sum_counts_neg = map(add, sum_counts_neg, a.time_count_neg)
+                        sum_counts_pos = map(add, sum_counts_pos, a.time_count_pos)
+                    
+                    # prep dict for each slot
+                    temp_store['neg'] = sum_counts_neg
+                    temp_store['pos'] = sum_counts_pos
+                    
+                    # Store each slot in one big dict that we can use
+                    ts_store[(alpha, gamma, epsilon)] = temp_store
+
                     # Gather aggregate information from summary
                     # And store in temporary attributes for better
                     # readability
@@ -278,6 +325,10 @@ class LearningAgent(Agent):
                 'percentage'])
         # Write data frame to disk
         summary_comp.to_csv(o_dir + '/' + output, header = True, index = None, sep = ';', mode = 'a')
+        print ts_store
+
+        import pickle
+        pickle.dump(ts_store, open(o_dir + '/ts_' + output.split('.')[0] + '.p', 'wb'))
 
 
 
@@ -302,8 +353,17 @@ def run():
     success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps', 'deadline_start', 'deadline_finish', 'percentage'])
     validation_no = 2
 
-    
+    sum_counts_pos = [0] * 100
+    sum_counts_neg = [0] * 100
+
+    ts_store = {}
+    temp_store = {}
+
     for i in range(validation_no):
+        test_alpha = 0.05
+        test_gamma = 0.90
+        test_epsilon = 1
+
         sim.run(n_trials=100)  # run for a specified number of trials
         # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 
@@ -324,11 +384,32 @@ def run():
         a.trial_summary[4] = 0
         a.trial_summary[5] = 0
 
-    print success_summary
-    success_average = success_summary.mean(axis=1)[0:]
-    print "Average: "
-    print success_average
-    print "Accuracy: ", min(success_average) / max(success_average) 
+        print
+        print
+        print "*" * 30
+        print "Neg Count: ", len(a.time_count_neg)
+        sum_counts_neg = map(add, sum_counts_neg, a.time_count_neg)
+        
+        print sum_counts_neg
+
+        print "Pos Count: ", len(a.time_count_pos)
+        sum_counts_pos = map(add, sum_counts_pos, a.time_count_pos)
+        
+        print sum_counts_pos
+        print "*" * 30
+
+        print success_summary
+        success_average = success_summary.mean(axis=1)[0:]
+        print "Average: "
+        print success_average
+        print "Accuracy: ", min(success_average) / max(success_average) 
+    
+    temp_store['neg'] = sum_counts_neg
+    temp_store['pos'] = sum_counts_pos
+    ts_store[(test_alpha, test_gamma, test_epsilon)] = temp_store
+    print ts_store
+
+    
 
     ###
     ### Perform feature comparison with a variety of settings
@@ -362,8 +443,8 @@ def run():
 
     #a.feature_comparison(output='feature_comparison_grand_finale.csv')
     #a.feature_comparison(alpha=[9], gamma=[9], epsilon=[1], output='verify.csv')
-    a.feature_comparison(output='feature_comparison_grand_finale_epa.csv')
-    #a.feature_comparison(output='test4.csv', epsilon=[1], alpha=[1])
+    a.feature_comparison(output='feature_comparison_all.csv')
+    #a.feature_comparison(output='drago.csv', epsilon=[1], alpha=[.9], gamma=[.9])
 
     
     
