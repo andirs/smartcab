@@ -4,9 +4,11 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Introduction\n",
+    "# Training a self-driving car agent\n",
     "## Reinforcement Learning Project\n",
-    "This documentation outlines the thought process behind training a smartcab to navigate on its own. We're applying reinforcement learning techniques for a self-driving agent in a simplified world to aid it in effectively reaching its destinations in the allotted time. First we'll investigate the given environment in which the agent operates in and instruct it, to execute very basic driving commands. Afterwards we'll exhibit the different states a smartcab can be in, analyzing its limited world and derive a Q-Learning algorithm, that will guide the agent towards its destination. At last we'll be going through several iterations in order to find the best configuration for our algorithm and the environment its operating in, to improve the results.\n",
+    "This documentation outlines the thought process behind training a smartcab to navigate on its own. We're applying reinforcement learning techniques for a self-driving agent in a simplified world to aid it in effectively reaching its destinations in the allotted time. \n",
+    "\n",
+    "First we'll investigate the given environment in which the agent operates in and instruct it, to execute very basic driving commands. Afterwards we'll exhibit the different states a smartcab can be in, analyzing its limited world and derive a Q-Learning algorithm, that will guide the agent towards its destination. At last we'll be going through several iterations in order to find the best configuration for our algorithm and the environment its operating in, to improve the results.\n",
     "\n",
     "## Description\n",
     "In the not-so-distant future, taxicab companies across the United States no longer employ human drivers to operate their fleet of vehicles. Instead, the taxicabs are operated by self-driving agents — known as smartcabs — to transport people from one location to another within the cities those companies operate. In major metropolitan areas, such as Chicago, New York City, and San Francisco, an increasing number of people have come to rely on smartcabs to get to where they need to go as safely and efficiently as possible. Although smartcabs have become the transport of choice, concerns have arose that a self-driving agent might not be as safe or efficient as human drivers, particularly when considering city traffic lights and other vehicles. To alleviate these concerns, your task as an employee for a national taxicab company is to use reinforcement learning techniques to construct a demonstration of a smartcab operating in real-time to prove that both safety and efficiency can be achieved.\n",
@@ -19,7 +21,7 @@
     "![Smart Cab Environment](smartcab_screenshot.png)\n",
     "\n",
     "\n",
-    "#### Following rules guide the traffic:\n",
+    "**Following rules guide the traffic:**\n",
     "\n",
     "* On a green light, a left turn is permitted if there is no oncoming traffic making a right turn or coming straight through the intersection.\n",
     "* On a red light, a right turn is permitted if no oncoming traffic is approaching from your left through the intersection.\n",
@@ -47,14 +49,19 @@
     "### Rewards, Penalties and Goal\n",
     "Smartcabs receive rewards for each successfully completed trip and smaller rewards for each action they execute successfully that obeys traffic rules. For any incorrect action a small penalty will be given and violating traffic rules or causing traffic accidents result in a high penalty. Based on the rewards and penalties the smartcab receives, the self-driving agent implementation will learn an optimal policy for driving on the city roads while obeying traffic rules, avoiding accidents, and reaching passengers' destinations in the allotted time.\n",
     "\n",
-    "# Implementing a Basic Driving Agent\n",
+    "## Implementing a Basic Driving Agent\n",
     "In order to get going, we'll implement a basic driving agent that chooses from all possible actions one at random and drives through the city streets. \n",
     "In order to do so, we set `enforce_deadline` to `False` and implement the following code in `basic_agent.py`:\n",
     "\n",
     "```python\n",
     "    action = random.choice([None, 'forward', 'left', 'right'])\n",
-    "```\n",
-    "\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "In order to make the observations countable we're implementing a code that counts each state where `deadline == 0` and `reward < 8` as not successful and states in which `reward >= 8` as successful attempts. We're choosing `8` as a reward boundary in order to account for possible negative rewards that are possible on the last attempt to get to the goal. For example if the car gets into an accident while going on the last field. As mentioned we'll implement a loop that executes the trials n-times, store the results in a table and takes the average over all n attempts for better comparision.\n",
     "\n",
     "> This agent implementation can be found in `smartcab.basic_agent.py`"
@@ -64,41 +71,154 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Observations\n",
-    "There are a couple interesting observations when you run the smartcab with nothing but random actions:\n",
+    "### Observations\n",
+    "> There are a couple interesting observations when you run the smartcab with nothing but random actions:\n",
     "\n",
-    "* When crashing, cars will restart at a different location and start to perform actions again.\n",
-    "* There are 3 other agents or cars in play.\n",
-    "* With n $\\rightarrow \\infty$ (through `enforce_deadline = False`) the agent reaches the goal eventually if it doesn't crash into another vehicle.\n",
-    "* There is a reward system in place that shows the immediate gratification of an action.\n",
+    "> * When crashing, cars will restart at a different location and start to perform actions again.\n",
+    "> * There are 3 other agents or cars in play.\n",
+    "> * With n $\\rightarrow \\infty$ (through `enforce_deadline = False`) the agent reaches the goal eventually if it doesn't crash into another vehicle.\n",
+    "> * There is a reward system in place that shows the immediate gratification of an action.\n",
     "\n",
-    "When we set `enforce_deadline` to `False` and let it run 10 times with `n_trials = 100` we get averaging stats. These stats indicate that only 25.78 % of all agents reach their destination in the given time. Not very convenient for our passengers. This is the measure we would like to improve significantly down the road. We'll use this metric as one of our baselines for our next implementations.\n",
+    "> When we set `enforce_deadline` to `False` and let it run 10 times with `n_trials = 100` we get following averaging stats:\n",
     "\n",
-    "|               | trial_count   |\n",
-    "| ------------- | ------------- |\n",
-    "| no_success    | 79.5          |\n",
-    "| success       | 20.5          |\n",
+    "> |               | trial_count   |\n",
+    "> | ------------- | ------------- |\n",
+    "> | no_success    | 79.5          |\n",
+    "> | success       | 20.5          |\n",
     "\n",
-    "> The data corresponding to this claim can be found in the file: `data/basic_agent_trials.csv`"
+    "> Which indicates that only 25.78 % of all agents reach their destination in the given time. Not very convenient for our passengers. This is the measure we would like to improve significantly down the road. \n",
+    "\n",
+    ">> The data corresponding to this claim can be found in the file: `data/basic_agent_trials.csv`\n",
+    "\n",
+    "We'll use this metric as one of our baselines for our next implementations."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>trial_count_1</th>\n",
+       "      <th>trial_count_2</th>\n",
+       "      <th>trial_count_3</th>\n",
+       "      <th>trial_count_4</th>\n",
+       "      <th>trial_count_5</th>\n",
+       "      <th>trial_count_6</th>\n",
+       "      <th>trial_count_7</th>\n",
+       "      <th>trial_count_8</th>\n",
+       "      <th>trial_count_9</th>\n",
+       "      <th>trial_count_10</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>no_success</th>\n",
+       "      <td>73</td>\n",
+       "      <td>79</td>\n",
+       "      <td>76</td>\n",
+       "      <td>78</td>\n",
+       "      <td>80</td>\n",
+       "      <td>87</td>\n",
+       "      <td>77</td>\n",
+       "      <td>82</td>\n",
+       "      <td>77</td>\n",
+       "      <td>86</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>success</th>\n",
+       "      <td>27</td>\n",
+       "      <td>21</td>\n",
+       "      <td>24</td>\n",
+       "      <td>22</td>\n",
+       "      <td>20</td>\n",
+       "      <td>13</td>\n",
+       "      <td>23</td>\n",
+       "      <td>18</td>\n",
+       "      <td>23</td>\n",
+       "      <td>14</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "            trial_count_1  trial_count_2  trial_count_3  trial_count_4  \\\n",
+       "no_success             73             79             76             78   \n",
+       "success                27             21             24             22   \n",
+       "\n",
+       "            trial_count_5  trial_count_6  trial_count_7  trial_count_8  \\\n",
+       "no_success             80             87             77             82   \n",
+       "success                20             13             23             18   \n",
+       "\n",
+       "            trial_count_9  trial_count_10  \n",
+       "no_success             77              86  \n",
+       "success                23              14  "
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "basic_agent_trials = pd.read_csv('data/basic_agent_trials.csv', index_col=0)\n",
+    "basic_agent_trials"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "no_success    79.5\n",
+       "success       20.5\n",
+       "dtype: float64"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "basic_agent_trials.mean(axis=1)"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Inform the Driving Agent\n",
-    "Now that the driving agent is capable of moving around in the environment, the next task is to identify a set of states that are appropriate for modeling the smartcab and environment. The main source of state variables are the current inputs at the intersection, but given our set of rules not all may require representation. The goal is, to process the inputs and update the agent's current state at each waypoint using the `self.state` variable. In order to check our performance we'll continue with the simulation deadline enforcement `enforce_deadline` being set to `False`. Let's take a look at all available information in our environment and talk through the possibilities that come with each of these inputs.\n",
+    "### Inform the Driving Agent\n",
+    "Now that the driving agent is capable of moving around in the environment, the next task is to identify a set of states that are appropriate for modeling the smartcab and environment. \n",
     "\n",
-    "### Traffic Lights\n",
+    "The main source of state variables are the current inputs at the intersection, but given our set of rules not all may require representation. The goal is, to process the inputs and update the agent's current state at each waypoint using the `self.state` variable. In order to check our performance we'll continue with the simulation deadline enforcement `enforce_deadline` being set to `False`.\n",
     "\n",
+    "#### All information available\n",
+    "Let's take a look at all information we've got available in our environment and talk through the possibilities that come with each of these inputs.\n",
+    "\n",
+    "##### Traffic Lights\n",
     "As mentioned above, we have an indicator that shows what color the traffic light at any given position of the agent has. This can take the values `green` and `red`. We find this information in the inputs dictionary and can call it with `inputs['light']`. Given our set of rules, this is a highly useful indicator for our smartcab to decide whether it should perform a certain action or not. This information will be included in our set of state variables.\n",
     "\n",
     "```python\n",
-    "    inputs['light'] = ['red', 'green']\n",
+    "`inputs['light'] = ['red', 'green']`\n",
     "```\n",
     "\n",
-    "### Traffic\n",
-    "\n",
+    "##### Traffic\n",
     "Our agent can detect, whether there is a vehicle at the intersection for each of the oncoming directions and what action this other agent is performing. Given the set of rules that apply on US streets we have following information that we need to especially emphasize:\n",
     "\n",
     "* If the traffic light is green:\n",
@@ -109,40 +229,39 @@
     "However since we want to let our agent learn these rules through reinforcement and gratification we are going to add all the information about traffic in our set of states. This adds following set to the list: \n",
     "\n",
     "```python\n",
-    "    inputs['oncoming'] = [None, 'left', 'right', 'forward']\n",
-    "    inputs['left'] = [None, 'left', 'right', 'forward']\n",
-    "    inputs['right'] = [None, 'left', 'right', 'forward']\n",
+    "`inputs['oncoming'] = [None, 'left', 'right', 'forward']`\n",
+    "`inputs['left'] = [None, 'left', 'right', 'forward']`\n",
+    "`inputs['right'] = [None, 'left', 'right', 'forward']`\n",
     "```\n",
     "\n",
-    "### Waypoints\n",
-    "\n",
+    "##### Waypoints\n",
     "The decision, which step to perform next is essential to learning if some action is good or bad, given the state. Especially in reinforcement learning. If you compare it to a simple but hurtful early life analogy, this is where our agent will understand if the cooktop is hot or not.\n",
     "\n",
     "```python\n",
-    "    self.next_waypoint = ['forward', 'left', 'right']\n",
+    "`self.next_waypoint = ['forward', 'left', 'right']`\n",
     "```\n",
     "\n",
-    "### Deadline\n",
-    "\n",
+    "##### Deadline\n",
     "One could argue that the time that is available for the smartcab to perform its delivery describes the state its in. We can think about classic situations where cab drivers are pushed to their limits and into breaking the law in order to get a passenger faster to the destination. Since we're building this system though, to perform optimal results without breaking the law we should discard this input though. \n",
     "Another valid concern is the number of possible combinations. Given that the deadline reduces by `1` on each action we perform an average of 40 to 50 actions each run, this would add a multiplier of `len(deadline)` to the state combinations that we already have. With only 100 training runs including around 40 to 50 actions in each run this might be a state input that rather distracts the learner from learning what's essential for the task.\n",
     "\n",
-    "### The final states for our Q-Learner\n",
+    "##### The final states for our Q-Learner\n",
+    ">To summarize, we're planning on including following inputs to the list of possible state combinations:\n",
     "\n",
-    "To summarize, we're planning on including following inputs to the list of possible state combinations:\n",
-    "\n",
-    "```python\n",
-    "    inputs['light'] = ['red', 'green'] -> 2\n",
-    "    inputs['oncoming'] = [None, 'left', 'right', 'forward'] -> 4\n",
-    "    inputs['left'] = [None, 'left', 'right', 'forward'] -> 4\n",
-    "    inputs['right'] = [None, 'left', 'right', 'forward'] -> 4\n",
-    "    self.next_waypoint = ['forward', 'left', 'right'] -> 3\n",
+    "> ```python\n",
+    "`inputs['light'] = ['red', 'green']` -> 2\n",
+    "`inputs['oncoming'] = [None, 'left', 'right', 'forward']` -> 4\n",
+    "`inputs['left'] = [None, 'left', 'right', 'forward']` -> 4\n",
+    "`inputs['right'] = [None, 'left', 'right', 'forward']` -> 4\n",
+    "`self.next_waypoint = ['forward', 'left', 'right']` -> 3\n",
     "```\n",
     "\n",
     "The total number of states therefore is the combination of all states:\n",
     "$$ 2 * 4 * 4 * 3 = 384 $$\n",
     "\n",
-    "The answer to the question whether this number seem reasonable given that the goal of Q-Learning is to learn and make informed decisions about each state is ambivalent. There are good arguments for both sides. Given that we are dealing with around `2000` to `4000` waypoints in our trials (`100` runs * `20` to `40` actions), the amount of `384` states seems to be a bit high. We could consider dropping `inputs['right']`, since given our rules if the traffic light is red and we want to make a right turn (which is allowed by US rules) this would be a correct action that wouldn't end up in an accident but all other actions would be incorrect and therefore should be learned as being incorrect. This would bring down the number of states to `96` but we would lose some flexibility, if we for example would change the rules slightly and appply it to some European traffic settings our Reinforcement Learner would learn incorrect rules. Since we'll be adding each state as a combination when it occures to a dictionary and calculate its given value we might not even end up evaluating and adding all `384` states. Therefore it should be alright to add all appearances out of `384` possible combinations."
+    "**Does this number seem reasonable given that the goal of Q-Learning is to learn and make informed decisions about each state?**\n",
+    "\n",
+    ">Given that we are dealing with around `2000` to `4000` waypoints in our trials (`100` runs * `20` to `40` actions), the amount of `384` states seems to be a bit high. We could consider dropping `inputs['right']`, since given our rules if the traffic light is red and we want to make a right turn (which is allowed by US rules) this would be a correct action that wouldn't end up in an accident but all other actions would be incorrect and therefore should be learned as being incorrect. This would bring down the number of states to `96` but we would lose some flexibility, if we for example would change the rules slightly and appply it to some European traffic settings our Reinforcement Learner would learn incorrect rules. Since we'll be adding each state as a combination when it occures to a dictionary and calculate its given value we might not even end up evaluating and adding all `384` states. Therefore it should be alright to add all appearances out of `384` possible combinations."
    ]
   },
   {
@@ -151,11 +270,11 @@
     "collapsed": true
    },
    "source": [
-    "# Implement a Q-Learning Driving Agent\n",
+    "## Implement a Q-Learning Driving Agent\n",
     "With the driving agent being capable of interpreting inputs and having a mapping of environmental states, we now want to make her understand how to best choose actions given this information. In order to do so, we are implementing an algorithm called Q-Learning. \n",
-    "Q-Learning will essentially compute the best action based on rewards given by states that the agent goes through. The Q-Learning driving agent will need to consider these rewards when updating its Q-values. With input from [Faculty of Engineering UNSW](http://www.cse.unsw.edu.au/~cs9417ml/RL1/algorithms.html).\n",
+    "Q-Learning will essentially compute the best action based on rewards given by states that the agent goes through. The Q-Learning driving agent will need to consider these rewards when updating its Q-values.\n",
     "\n",
-    "## Algorithm\n",
+    "Specialty: Stochastic vs. Deterministic\n",
     "\n",
     "The algorithm can be described as follows:\n",
     "\n",
@@ -169,13 +288,16 @@
     "        8. $s \\leftarrow s'$;\n",
     "    9. Until $s$ is terminal\n",
     "\n",
+    "\n",
     "* Where $\\alpha$ is the learning rate set between `[0, 1]`.\n",
     "* $\\gamma$ is the discount factor which models the fact that future rewards are worth less than immediate rewards.\n",
     "\n",
-    "## Q-Learning Code\n",
+    "[Input from Faculty of Engineering UNSW](http://www.cse.unsw.edu.au/~cs9417ml/RL1/algorithms.html)\n",
+    "\n",
+    "### Q-Learning Code\n",
     "We're now implementing this algorithm to make our agent learn the best possible policy.\n",
     "\n",
-    "### Initialize Q(s, a) arbitrarily\n",
+    "#### 1. Initialize Q(s, a) arbitrarily\n",
     "We'll deal with the initialization part on the fly with a 'lazy initialization'. Every state is added to the list of possible states once it occurs and set its actions q-values to the value `q_start`.\n",
     "\n",
     "```python\n",
@@ -183,13 +305,10 @@
     "        [...]\n",
     "    else:\n",
     "        # Initialize new state using q_start\n",
-    "        qtable.update({state : {None : q_start, \n",
-    "                               'forward' : q_start, \n",
-    "                               'left' : q_start, \n",
-    "                               'right' : q_start}})\n",
+    "        qtable.update({state : {None : q_start, 'forward' : q_start, 'left' : q_start, 'right' : q_start}})\n",
     "```\n",
     "\n",
-    "### Choose a from s\n",
+    "#### 2. Choose a from s\n",
     "As we can see, we first check if we've seen a state before or not by accessing our dictionary. To account for states we haven't seen, we add following line of code that picks a random action to the `else` statement above.\n",
     "\n",
     "```python\n",
@@ -207,9 +326,7 @@
     "        if random_threshold < self.epsilon:\n",
     "            # Determine maximum of Q value(s) for given state\n",
     "            q_max = max(qtable[state].values())\n",
-    "            action_set = {\n",
-    "                action:q_new for action, q_new\n",
-    "                    in qtable[state].items() if q_new == q_max}\n",
+    "            action_set = {action:q_new for action, q_new in qtable[state].items() if q_new == q_max}\n",
     "            action = random.choice(action_set.keys())\n",
     "        else:\n",
     "            # Occasionally perform random action\n",
@@ -217,16 +334,12 @@
     "            action = random.choice(action_set)\n",
     "    else:\n",
     "        # Initialize new state using q_start\n",
-    "        qtable.update(\n",
-    "            {state : {None : q_start, \n",
-    "                     'forward' : q_start, \n",
-    "                     'left' : q_start, \n",
-    "                     'right' : q_start}})\n",
+    "        qtable.update({state : {None : q_start, 'forward' : q_start, 'left' : q_start, 'right' : q_start}})\n",
     "        action = random.choice(action_set)\n",
     "    return action\n",
     "```\n",
     "\n",
-    "### Take action a, observe reward r at state s' and learn from it\n",
+    "#### 3. Take action a, observe reward r at state s' and learn from it\n",
     "Afterwards our agent takes said action, gets the reward for the new state she's in and starts learning. To recall the function we are going to use for our calculation is:\n",
     "\n",
     "$$ Q(s,a) \\leftarrow (1 - \\alpha) * Q(s,a) + \\alpha * [r + \\gamma * (max_{\\alpha}Q(s',a') )] $$\n",
@@ -236,16 +349,16 @@
     "```python\n",
     "if self.trial_count > 0:\n",
     "    q_new = qtable[self.prev_state][self.prev_action]\n",
-    "    q_new = (1-alpha) * q_new \n",
-    "            + (alpha * (self.prev_rewards \n",
-    "            + (gamma * (max(qtable[state].values())))))\n",
+    "    q_new = (1-alpha) * q_new + (alpha * (self.prev_rewards + (gamma * (max(qtable[state].values())))))\n",
     "    \n",
     "self.prev_state = self.state\n",
     "self.prev_action = action\n",
     "self.prev_rewards = reward\n",
     "```\n",
     "\n",
-    "At this point our agent has performed an action, got a reward, calculated the q-value attached to the scenery and advanced to state s'. In order to run the program we have to initialize some of the parameters. For a first initialization we'll be choosing following values for the parameters:\n",
+    "At this point our agent has performed an action, got a reward, calculated the q-value attached to the scenery and advanced to state s'.\n",
+    "\n",
+    "In order to run the program we have to initialize some of the parameters. For a first initialization we'll be choosing following values for the parameters:\n",
     "\n",
     "* alpha = 0.5 - this ensures that our algorithm continously learns at a steady pace.\n",
     "* gamma = 0.5 - makes our agent appreciate future rewards equally to immediate rewards.\n",
@@ -254,7 +367,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 64,
+   "execution_count": 6,
    "metadata": {
     "collapsed": false
    },
@@ -273,6 +386,8 @@
        "      <th>no_success</th>\n",
        "      <th>success</th>\n",
        "      <th>steps</th>\n",
+       "      <th>deadline_start</th>\n",
+       "      <th>deadline_end</th>\n",
        "      <th>percentage</th>\n",
        "    </tr>\n",
        "  </thead>\n",
@@ -285,6 +400,8 @@
        "      <td>14.8</td>\n",
        "      <td>85.2</td>\n",
        "      <td>24.4</td>\n",
+       "      <td>30.22</td>\n",
+       "      <td>13.254</td>\n",
        "      <td>43.837732</td>\n",
        "    </tr>\n",
        "  </tbody>\n",
@@ -292,20 +409,21 @@
        "</div>"
       ],
       "text/plain": [
-       "   alpha  gamma  epsilon  no_success  success  steps  percentage\n",
-       "0    0.5    0.5      0.8        14.8     85.2   24.4   43.837732"
+       "   alpha  gamma  epsilon  no_success  success  steps  deadline_start  \\\n",
+       "0    0.5    0.5      0.8        14.8     85.2   24.4           30.22   \n",
+       "\n",
+       "   deadline_end  percentage  \n",
+       "0        13.254   43.837732  "
       ]
      },
-     "execution_count": 64,
+     "execution_count": 6,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
-    "fc_q0r1 = pd.read_csv(\n",
-    "    'data/feature_comparison_baseline.csv', sep = ';')\n",
-    "\n",
-    "fc_q0r1.drop(['deadline_start', 'deadline_end'], axis=1)"
+    "fc_q0r1 = pd.read_csv('data/feature_comparison_baseline.csv', sep = ';')\n",
+    "fc_q0r1"
    ]
   },
   {
@@ -334,24 +452,20 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Observations\n",
-    "Below are observations of the biggest changes noticable compared to the basic driving agent.\n",
+    "**What changes do you notice in the agent's behavior when compared to the basic driving agent when random actions were always taken?** \n",
+    "> Below are observations of the biggest changes noticable compared to the basic driving agent:\n",
+    "> * The biggest change that can be noticed is, the agent starts heading towards the destination even early in the process when almost no rules have been learned yet.\n",
+    "> * The agent stops at certain points, when needed but doesn't halt at a stop when the light is green and there is no interfering traffic.\n",
+    "> * The agent also learns that running over a red light is a bad choice and learns to either wait or pick a different route.\n",
+    "> * There are hardly any crashes that happen any more but it happens that even at a late stage that the agent makes mistakes.\n",
+    "> * In the beginning there are some negative outcomes but later on the positive results overweigh.\n",
+    "> * In fact the agent has a high success rate with only a few negative outcomes until later in the learning process.\n",
     "\n",
-    "### Observations regarding the agent's behavior when compared to the basic driving agent\n",
-    "\n",
-    "* The biggest change that can be noticed is, the agent starts heading towards the destination even early in the process when almost no rules have been learned yet.\n",
-    "* The agent stops at certain points, when needed but doesn't halt at a stop when the light is green and there is no interfering traffic.\n",
-    "* The agent also learns that running over a red light is a bad choice and learns to either wait or pick a different route.\n",
-    "* There are hardly any crashes that happen any more but it happens that even at a late stage that the agent makes mistakes.\n",
-    "* In the beginning there are some negative outcomes but later on the positive results overweigh.\n",
-    "* In fact the agent has a high success rate with only a few negative outcomes until later in the learning process.\n",
-    "\n",
-    "### Explanation of behavior\n",
-    "\n",
-    "* It becomes obvious that the agent tries to maximize the actions that are producing the highest reward.\n",
-    "* By adding a certain randomness to the algorithm (through a $\\epsilon$ greedy implementation) we're taking into account to make mistakes but avoid getting stuck in a local minimum and learning a semi-optimal policy.\n",
-    "* The agent seems to learn by her mistakes in the first iterations taking safer routes later on after she has learned.\n",
-    "* Allowing out agent to explore 20 % of the time might make the difference in this setup.\n",
+    "**Why is this behavior occurring?**\n",
+    "> * It becomes obvious that the agent tries to maximize the actions that are producing the highest reward.\n",
+    "> * By adding a certain randomness to the algorithm (through a $\\epsilon$ greedy implementation) we're taking into account to make mistakes but avoid getting stuck in a local minimum and learning a semi-optimal policy.\n",
+    "> * The agent seems to learn by her mistakes in the first iterations taking safer routes later on after she has learned.\n",
+    "> * Allowing out agent to explore 20 % of the time might make the difference in this setup.\n",
     "\n",
     "We'll be taking these results as a first step towards a better policy and will try to maximize our agent's performance not only based on the success rate but also on other factors such as time."
    ]
@@ -362,14 +476,18 @@
     "collapsed": true
    },
    "source": [
-    "# Improve the Q-Learning Driving Agent\n",
-    "The final task now is to enhance our driving agent so that, after sufficient training, the smartcab is able to reach the destination within the allotted time safely and efficiently. Parameters we are taking into account when it comes to tweaking the Q-Learning algorithm are:\n",
+    "## Improve the Q-Learning Driving Agent\n",
+    "The final task now is to enhance our driving agent so that, after sufficient training, the smartcab is able to reach the destination within the allotted time safely and efficiently. Parameters we are taking into account when it comes to tweaking the Q-Learning algorithm are\n",
     "\n",
     "* the learning rate (alpha)\n",
     "* the discount factor (gamma) and \n",
     "* the exploration rate (epsilon) \n",
     "\n",
-    "## Parameter Exploration\n",
+    "All these parameters contribute to the driving agent’s ability to learn the best action for each state. \n",
+    "\n",
+    "**QUESTION: Report the different values for the parameters tuned in your basic implementation of Q-Learning.**\n",
+    "\n",
+    "## Feature comparison\n",
     "In order to find the best parameters for our agent and our environment, we are testing an array of feature combinations. At first let's take into consideration what each of these parameters stands for and what the effects of raising or lowering them could mean.\n",
     "\n",
     "### Alpha (α)\n",
@@ -396,11 +514,11 @@
     "```\n",
     "\n",
     "### Dynamic Parameters\n",
-    "As already discussed, it might be helpful to choose a parameter that evolves dynamically over the course of time.\n",
+    "As already discussed, it might be helpful to choose a parameter that evolves dynamically over the course of time. In order to implement this as a possible feature combination to choose from we take the sigmoid function and implement it with a positive $t$ where the function is supposed to move towards 1 and a negative $t$ where the function should move towards 0.\n",
     "\n",
     "$$ S_{t} = \\frac{1}{1 + e^{-t}} $$\n",
     "\n",
-    "In order to implement this as a possible feature combination to choose from we take the sigmoid function and implement it with a positive $t$ where the function is supposed to move towards 1 and a negative $t$ where the function should move towards 0. To get a better feel of how this will impact our values, let's look at a drawing of the function for values ranging from -10 to 10."
+    "The standard sigmoid curve looks like this:"
    ]
   },
   {
@@ -474,16 +592,13 @@
     "## Success metrics\n",
     "In order to determine whether a combination is working great or should rather be discarded we need success metrics and a baseline to test against. From our initial testing on the basic agent with random actions we could already gauge her performance through the amount of times she reached her destination. Beating a 25.78 % success percentage should be the least we can do. In order to evaluate our combinations a little bit more in detail while keeping the most natural metric we are establishing some further metrics. For clarification here are all the numbers we are looking at:\n",
     "\n",
-    "### Success vs. no success\n",
-    "\n",
+    "#### Success vs. no success\n",
     "One very important metric is, the question on how often an agent reaches her final destination. For each trial we will count the amount and calculate the mean over all test runs.\n",
     "\n",
-    "### Steps\n",
-    "\n",
+    "#### Steps\n",
     "This metric intuitively counts the average steps it takes for a cab to reach its destination. The smaller the better. But this number is skewed through the random initialization of destination and cab. Averaged over all test runs this will still give us interesting insights about how quick a certain feature combination learns. \n",
     "\n",
-    "### Remaining Time vs. Time Alotted\n",
-    "\n",
+    "#### Remaining Time vs. Time Alotted\n",
     "In addition to the amount of successful trials (aka how often did the cab reach the destination in the alotted time) we also want to establish a metric that takes into consideration the ratio of the still remaining time and the deadline. Since the deadline is chosen based on the distance between the starting point of our cab and the location of the final destination, we are normalizing this term. We calculate this metric by dividing the remaining time at the end (which could also be 0 for unsuccessful trials) by the alotted time in the beginning and multiply it by 100 which gives us the ratio of time used vs. time given. We will print out: initial deadline (`deadline_start`), remaining time (`deadline_end`) and the ratio in between for comparability (creatively called ... *drum roll* ... `percentage`)."
    ]
   },
@@ -491,10 +606,10 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# Parameter Testing\n",
+    "## Parameter Testing\n",
     "Next we're going to observe the driving agent’s learning and smartcab’s success rate. We're also curious in how the success rate progresses over time as the agent learns. In order to find the best parameters we're going to use an exhaustive process that tries the mentioned parameters in their combinations.\n",
     "\n",
-    "## Overall Comparison Setup\n",
+    "### Overall Comparison Setup\n",
     "The setup is as follows, each combination will run for 100 trials with enforced deadline and afterwards create a summary. These runs will cycle 5 times and all summaries will be averaged, calculating the success metrics. All information will be stored in a file:\n",
     "\n",
     "> The comparison result files can be found in the folder `data/` the initial feature combination data is stored in `feature_comparison_qinit0_rinit0.csv` and `ts_feature_comparison_qinit0_rinit0.p` for the time-series data."
@@ -502,7 +617,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 65,
+   "execution_count": 10,
    "metadata": {
     "collapsed": false
    },
@@ -521,6 +636,8 @@
        "      <th>no_success</th>\n",
        "      <th>success</th>\n",
        "      <th>steps</th>\n",
+       "      <th>deadline_start</th>\n",
+       "      <th>deadline_end</th>\n",
        "      <th>percentage</th>\n",
        "    </tr>\n",
        "  </thead>\n",
@@ -533,6 +650,8 @@
        "      <td>0.0</td>\n",
        "      <td>100.0</td>\n",
        "      <td>10.8</td>\n",
+       "      <td>29.86</td>\n",
+       "      <td>18.276</td>\n",
        "      <td>61.213835</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -543,6 +662,8 @@
        "      <td>0.4</td>\n",
        "      <td>99.6</td>\n",
        "      <td>11.8</td>\n",
+       "      <td>29.18</td>\n",
+       "      <td>17.696</td>\n",
        "      <td>60.637523</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -553,6 +674,8 @@
        "      <td>0.2</td>\n",
        "      <td>99.8</td>\n",
        "      <td>10.8</td>\n",
+       "      <td>30.08</td>\n",
+       "      <td>18.202</td>\n",
        "      <td>60.524823</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -563,6 +686,8 @@
        "      <td>1.8</td>\n",
        "      <td>98.2</td>\n",
        "      <td>13.8</td>\n",
+       "      <td>30.05</td>\n",
+       "      <td>18.152</td>\n",
        "      <td>60.442766</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -573,6 +698,8 @@
        "      <td>0.4</td>\n",
        "      <td>99.6</td>\n",
        "      <td>10.2</td>\n",
+       "      <td>29.54</td>\n",
+       "      <td>17.808</td>\n",
        "      <td>60.292098</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -583,6 +710,8 @@
        "      <td>0.8</td>\n",
        "      <td>99.2</td>\n",
        "      <td>8.2</td>\n",
+       "      <td>29.85</td>\n",
+       "      <td>17.986</td>\n",
        "      <td>60.256073</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -593,6 +722,8 @@
        "      <td>0.6</td>\n",
        "      <td>99.4</td>\n",
        "      <td>11.6</td>\n",
+       "      <td>29.32</td>\n",
+       "      <td>17.468</td>\n",
        "      <td>59.564776</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -603,6 +734,8 @@
        "      <td>0.6</td>\n",
        "      <td>99.4</td>\n",
        "      <td>8.8</td>\n",
+       "      <td>29.75</td>\n",
+       "      <td>17.718</td>\n",
        "      <td>59.518469</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -613,6 +746,8 @@
        "      <td>0.2</td>\n",
        "      <td>99.8</td>\n",
        "      <td>11.2</td>\n",
+       "      <td>30.10</td>\n",
+       "      <td>17.890</td>\n",
        "      <td>59.417939</td>\n",
        "    </tr>\n",
        "    <tr>\n",
@@ -623,6 +758,8 @@
        "      <td>0.6</td>\n",
        "      <td>99.4</td>\n",
        "      <td>12.6</td>\n",
+       "      <td>29.19</td>\n",
+       "      <td>17.302</td>\n",
        "      <td>59.350034</td>\n",
        "    </tr>\n",
        "  </tbody>\n",
@@ -630,38 +767,44 @@
        "</div>"
       ],
       "text/plain": [
-       "     alpha  gamma  epsilon  no_success  success  steps  percentage\n",
-       "200   1.00   0.05      1.0         0.0    100.0   10.8   61.213835\n",
-       "298  99.00   0.05      1.0         0.4     99.6   11.8   60.637523\n",
-       "151   0.90   0.05      1.0         0.2     99.8   10.8   60.524823\n",
-       "235   1.00   9.00      1.0         1.8     98.2   13.8   60.442766\n",
-       "207   1.00   0.30      1.0         0.4     99.6   10.2   60.292098\n",
-       "11    0.05   0.30      1.0         0.8     99.2    8.2   60.256073\n",
-       "284   9.00   9.00      1.0         0.6     99.4   11.6   59.564776\n",
-       "333  99.00   9.00      1.0         0.6     99.4    8.8   59.518469\n",
-       "67    0.30   0.60      1.0         0.2     99.8   11.2   59.417939\n",
-       "53    0.30   0.05      1.0         0.6     99.4   12.6   59.350034"
+       "     alpha  gamma  epsilon  no_success  success  steps  deadline_start  \\\n",
+       "200   1.00   0.05      1.0         0.0    100.0   10.8           29.86   \n",
+       "298  99.00   0.05      1.0         0.4     99.6   11.8           29.18   \n",
+       "151   0.90   0.05      1.0         0.2     99.8   10.8           30.08   \n",
+       "235   1.00   9.00      1.0         1.8     98.2   13.8           30.05   \n",
+       "207   1.00   0.30      1.0         0.4     99.6   10.2           29.54   \n",
+       "11    0.05   0.30      1.0         0.8     99.2    8.2           29.85   \n",
+       "284   9.00   9.00      1.0         0.6     99.4   11.6           29.32   \n",
+       "333  99.00   9.00      1.0         0.6     99.4    8.8           29.75   \n",
+       "67    0.30   0.60      1.0         0.2     99.8   11.2           30.10   \n",
+       "53    0.30   0.05      1.0         0.6     99.4   12.6           29.19   \n",
+       "\n",
+       "     deadline_end  percentage  \n",
+       "200        18.276   61.213835  \n",
+       "298        17.696   60.637523  \n",
+       "151        18.202   60.524823  \n",
+       "235        18.152   60.442766  \n",
+       "207        17.808   60.292098  \n",
+       "11         17.986   60.256073  \n",
+       "284        17.468   59.564776  \n",
+       "333        17.718   59.518469  \n",
+       "67         17.890   59.417939  \n",
+       "53         17.302   59.350034  "
       ]
      },
-     "execution_count": 65,
+     "execution_count": 10,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
-    "fc_q0r0 = pd.read_csv(\n",
-    "    'data/feature_comparison_qinit0_rinit0.csv', sep = ';')\n",
-    "fc_q0r0.sort_values([\n",
-    "        'percentage', \n",
-    "        'steps', \n",
-    "        'success'], \n",
-    "        ascending=[False, True, False]).head(n=10).drop([\n",
-    "        'deadline_start', 'deadline_end'], axis=1)"
+    "fc_q0r0 = pd.read_csv('data/feature_comparison_qinit0_rinit0.csv', sep = ';')\n",
+    "fc_q0r0.sort_values(['percentage', 'steps', 'success'], ascending=[False, True, False]).head(n=10)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 27,
+   "execution_count": 11,
    "metadata": {
     "collapsed": false
    },
@@ -670,45 +813,41 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Feature combinations with a 100% success rate: 0\n",
-      "Smallest average step count for a success rate higher than 90 % was: 9.6\n"
+      "Feature combinations with a 100% success rate: 1\n",
+      "Smallest average step count for a success rate higher than 90 % was: 6.8\n"
      ]
     }
    ],
    "source": [
     "print 'Feature combinations with a 100% success rate: {}'.format(\n",
     "    len(fc_q0r0[fc_q0r0['success'] == 100.0]))\n",
-    "print 'Smallest average step count for a success rate ' \\\n",
-    "       + 'higher than 90 % was: {}'.format(\n",
-    "            min(fc_q0r0[fc_q0r0['success'] > 90.0]['steps']))"
+    "print 'Smallest average step count for a success rate higher than 90 % was: {}'.format(min(fc_q0r0[fc_q0r0['success'] > 90.0]['steps']))"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### For which set of parameters does the agent perform best? How well does the final driving agent perform?\n",
+    "**For which set of parameters does the agent perform best? How well does the final driving agent perform?**\n",
     "\n",
     "When we look at our first parameter combinations there are a couple very interesting takeaways:\n",
-    "\n",
     "* As mentioned above we have parameters that leave the game without even failing once to reach the destination.\n",
     "* There were feature combinations that led to an average step count of 6.8 (while keeping a success rate higher than 90 %)\n",
     "* In fact: the frontrunner based on the deadline_end vs deadline_start ratio percentage achieved its result with an average step count of 10.8 and over 61% of time still on the clock.\n",
     "\n",
-    "### The Parameters:\n",
+    "The Parameters:\n",
+    "* α: Based on these stats, alpha tends to work better with a higher (above .5) or dynamic setting that starts at ~1 and makes alpha move towards 0 over time.\n",
     "\n",
-    "* **α:** Based on these stats, alpha tends to work better with a higher (above .5) or dynamic setting that starts at ~1 and makes alpha move towards 0 over time.\n",
+    "* γ: For gamma, lower values tend to work better based on these metrics. This could have to do with the small playing field and the limited time given plus the steps it takes to reach the destination. In a game like this with our metrics, leaning towards immediate rewards seems to play out better for the agent.\n",
     "\n",
-    "* **γ:** For gamma, lower values tend to work better based on these metrics. This could have to do with the small playing field and the limited time given plus the steps it takes to reach the destination. In a game like this with our metrics, leaning towards immediate rewards seems to play out better for the agent.\n",
-    "\n",
-    "* **ε:** The closer epsilon is to 1, the better the results get. It seems like agents that are exploring are being penalized for their wrong actions heavily based on our success definition. This could be connected to the environment, the success metrics we're using and the scope of the problem we are trying to learn. In a world where there is only limited time and a small playing field it might pay off to rather take the best learned action than to pick one at random.\n",
+    "* ε: The closer epsilon is to 1, the better the results get. It seems like agents that are exploring are being penalized for their wrong actions heavily based on our success definition. This could be connected to the environment, the success metrics we're using and the scope of the problem we are trying to learn. In a world where there is only limited time and a small playing field it might pay off to rather take the best learned action than to pick one at random.\n",
     "\n",
     "Keeping in mind, that we want to make sure the algorithm always converges we would like to choose an ε that is smaller than 1 or never reaches 1. Taking this approach drops our success rate and percentage value down but it keeps an open mind towards larger settings and environments that are harder to move in. With this argument in mind, we're also discarding too small values for γ because we're looking for long-term effects in our training."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 50,
+   "execution_count": 12,
    "metadata": {
     "collapsed": false
    },
@@ -727,42 +866,44 @@
        "      <th>no_success</th>\n",
        "      <th>success</th>\n",
        "      <th>steps</th>\n",
+       "      <th>deadline_start</th>\n",
+       "      <th>deadline_end</th>\n",
        "      <th>percentage</th>\n",
        "    </tr>\n",
        "  </thead>\n",
        "  <tbody>\n",
        "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>99</td>\n",
-       "      <td>99</td>\n",
-       "      <td>0.99</td>\n",
-       "      <td>8.8</td>\n",
-       "      <td>91.2</td>\n",
-       "      <td>9.6</td>\n",
-       "      <td>53.281207</td>\n",
+       "      <th>17</th>\n",
+       "      <td>0.05</td>\n",
+       "      <td>0.6</td>\n",
+       "      <td>0.9</td>\n",
+       "      <td>3.8</td>\n",
+       "      <td>96.2</td>\n",
+       "      <td>16.8</td>\n",
+       "      <td>30.2</td>\n",
+       "      <td>16.878</td>\n",
+       "      <td>55.892645</td>\n",
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
        "</div>"
       ],
       "text/plain": [
-       "   alpha  gamma  epsilon  no_success  success  steps  percentage\n",
-       "0     99     99     0.99         8.8     91.2    9.6   53.281207"
+       "    alpha  gamma  epsilon  no_success  success  steps  deadline_start  \\\n",
+       "17   0.05    0.6      0.9         3.8     96.2   16.8            30.2   \n",
+       "\n",
+       "    deadline_end  percentage  \n",
+       "17        16.878   55.892645  "
       ]
      },
-     "execution_count": 50,
+     "execution_count": 12,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
-    "fc_q0r0[(fc_q0r0['epsilon'] != 1) \n",
-    "      & (fc_q0r0['gamma'] > .5)].sort_values([\n",
-    "        'percentage', \n",
-    "        'steps', \n",
-    "        'success'], \n",
-    "        ascending=[False, True, False]).head(n=1).drop([\n",
-    "        'deadline_start', 'deadline_end'], axis=1)"
+    "fc_q0r0[(fc_q0r0['epsilon'] != 1) & (fc_q0r0['gamma'] > .5)].sort_values(\n",
+    "    ['percentage', 'steps', 'success'], ascending=[False, True, False]).head(n=1)"
    ]
   },
   {
@@ -782,7 +923,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 51,
+   "execution_count": 13,
    "metadata": {
     "collapsed": false
    },
@@ -791,7 +932,7 @@
      "data": {
       "image/png": "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\nd999N0cffTQf+9jHALjrrrvYeeedOeywwxp8ns997nPsuOOOPPTQQxajkiSphdlrr0yxmO/3yJOL\nLrqIO+64g6uuuqpJOvryyy9TW1tLt27dmjwvIuo3ES1atIiIoGvXrg36bLPNNnTu3LnJc6dNm8Z1\n113HCy+8wAcffFDf/ulPf3qLP8egQYMYNWoUb7zxBp/4xCd46KGHeOuttxokoC+99BLvvPMOHTp0\naPbzND7NvzUsRiVJUmG0bp2X1LJQunTpwkknncTNN9/c4FQ8ZNLFqqoqfvOb3zR7Xc8dd9xxs99v\n+vTpnHLKKRx33HH86Ec/okOHDmyzzTaMGzeOV155ZYs/x6BBg7jgggu48847Oeecc5g9ezY777wz\nhx9+eIPP07FjR3760582u1u/ffv2W/z+jVmMSpIkbaKLLrqI6dOnc/XVVzdo79q1KyklOnfu3Gw6\nus6nPvUpUkq8/PLLHHzwwfXta9euZeHChey77771bXfffTddu3blrrvuavAao0ePbvDz5l7vtHPn\nzvTv359Zs2Zx5pln8vOf/5yvf/3rbLvttg0+z4MPPsgXvvCF+lP3+eJuekmSpE306U9/mpNOOomp\nU6c22Fl/3HHHUVVVxaWXXtrs85YtWwZAv3792HXXXbnllluora2tPz59+nT+9a9/NXjONtts0+R1\nnnrqKZ544okGba3rNmxtziWXBg0axJNPPsltt93GkiVLGpyiBzjhhBP48MMP6y8RlW3t2rUsX758\nk99rY0xGJUmS1qO5U9SjRo3ijjvu4MUXX6Rnz55Apki9/PLLufDCC1mwYAHHHnssO+20E6+88gq/\n+MUvOO200zjvvPPYdtttGTNmDOeccw6HHHIIJ5xwAgsXLuR///d/6datW4OU86ijjuKee+7h2GOP\n5cgjj+SVV15h6tSp7LPPPrz33nv1/bbffnt69OjBrFmz2HPPPdlll13o2bMn++yzz3o/1wknnMAP\nf/hDfvjDH7Lrrrs2ufboQQcdxGmnncZVV13FX/7yF77yla+w7bbb8ve//5277rqLiRMn1l8+amuZ\njEqSJK1Hc6fAu3btyje/+c0m1/AcMWIEd999N9tssw1jx47l/PPP59577+WII47g6KOPru935pln\nMnHiRP7xj39w/vnn8+ijjzJ37lzatWvH9ttvX9/vW9/6FldeeSXPPvss5557Lg888AAzZsygb9++\nTcZ166230qlTJ8477zxOPPFE7r777g1+hk6dOvGFL3yB9957j+OPP77ZFHbKlCncfPPNvP3224wa\nNYoLL7yQhx9+mKFDh3LggQdu3kRuQGzoFlKlIiL6APPmzZtHnxa88FmSpEKrqamhb+ZySn1TSlt2\nPaD18Pdz7qSUaN++PccffzxTp04t9nC22ub8uzMZlSRJKqDVq1c3aZs2bRrLli3jkEMOKcKIiss1\no5IklYkVK+C66+D88yHrbK9KzJNPPsnw4cMZOHAgu+66K/PmzeO2226jV69efOMb3yj28ArOYlSS\npDLwyCNw6qnwxhtwyCHwxS8We0Ran86dO7PHHntwww03sGzZMnbZZZf69aHZt/6sFJX3iSVJKiMr\nVsDIkXDjjTBgANx/P2zgMpcqAZ/61Kf4xS9+UexhlAyLUUmSWoC334bf/Q6y9x2vXAlXXplJQydM\ngLPPhmZu/iOVNItRSZJKWEowezaceSYsXdr0+EEHmYaqZfPvJ0mSStTixfCNb8DgwZl1oK+9ljkt\nn/145BELUbVsJqOSJJWY7DQ0IvPfAwcWe1RSfpiMSpJUQhqnoc89ZyGq8mYyKklSCWichs6aBSec\nUOxRSflnMipJUpG99dZHaeihh8Lzz1uIqnJYjEqSVCQpZRLQHj3g0Uczyejs2dC+fbFHpmK4/fbb\nqaqqYtGiRRvt+8gjj1BVVcWjjz5agJHll8WoJElFkL02dF0a6trQ0jJt2jSqqqrqHzvssAPdu3fn\n7LPP5q233sr5+0UEEdGgbcqUKUybNm29/cuBa0YlSSogd8q3LBHBZZddRufOnVm1ahWPPfYYU6ZM\n4b777uNvf/sb22+/fc7ea+jQoVRXV7PddtvVt02ePJn27dtz8sknN+h78MEH8/777zfo21JZjEqS\nVCCLF8MZZ8A992QK0EmTPCXfEhxxxBH06dMHgFNPPZVddtmF8ePHM2fOHAYNGpSz94mIzSouy6EQ\nBU/TS5KUd+vWhu6zj2tDy8Ghhx5KSokFCxYAsGDBAgYOHMiuu+5KmzZtOOCAA/j1r3/d5Hk33HAD\nPXv2pE2bNuyyyy7st99+/OxnP6s/3njNaJcuXXjuued4+OGH65cKHHrooUDTNaNnn302O+20E6tW\nrWryvtXV1ey+++6krHvJ3nfffRx00EHsuOOOtG3blqOOOornn38+d5O0GSxGJUnKo+yd8l43tDy8\n/PLLAHz84x/nrbfe4oADDuCBBx7grLPOYty4caxevZqjjz6aOXPm1D/nlltu4dxzz6Vnz55cf/31\njB07ls997nM89dRT9X0arxm9/vrr+eQnP8nee+/NjBkzmD59OqNGjWrQf51BgwaxcuVKfvWrXzUY\n6/vvv8+9997LwIED6/vfcccdHHXUUey0005cc801jB49mvnz5zNgwIBN2jyVa56mlyQpD1wbWj6W\nL1/O0qVL69eMXnbZZbRp04YjjzySK6+8krfffpvHHnuMAw44AIDvfOc79OrVi/POO49jjjkGgF//\n+tf07NmzQRK6MUcffTSjRo2iffv2VFdXb7DvF7/4RXbffXdmzZrF8ccfX99+7733snLlSk6ou1bY\nihUrOPfccxk2bBhTpkyp73fyySfzmc98hnHjxnHTTTdt8hhzwWJUkqQce+utzNrQu+/OpKKTJkGH\nDsUeVfGtXAkvvJDf99hrL2jdOnevl1LisMMOq/85IujcuTMzZ87kE5/4BPfddx/9+/evL0QB2rRp\nw7Bhw7jwwgt5/vnn6dGjBzvvvDOvvfYaf/7zn+nXr1/uBphl4MCB3HzzzaxcuZLWdZMwa9YsOnXq\nxIEHHgjAAw88wPLlyxk8eDBLly5t8Ln2339/HnroobyMbUMsRiVJyhHT0A174QXo2ze/7zFvHtTt\nNcqJiGDy5MnsueeetGrVio4dO9K9e/f646+++iqf//znmzxv7733rj/eo0cPRowYwYMPPkj//v3p\n1q0bX/nKVzjxxBP5whe+kLOxDho0iAkTJjB37lwGDx7MihUruO+++/je975X3+ell14ipcQhhxzS\n7Gdt165dzsazqSxGJUnKgew01J3yzdtrr0yxmO/3yLX99tuvfjf9ltprr7148cUXuffee/nNb37D\nPffcw+TJk7nkkku45JJLcjLO/fffn86dOzN79mwGDx7M3LlzWbVqVf0peoDa2loigunTp9OxY8cm\nr9GqVeFLQ4tRSZK2gmnopmvdOrepZSn41Kc+xYsvvtikff78+fXH19lhhx0YOHAgAwcO5MMPP+Tr\nX/86V1xxBRdccMF6L9O0uRe2P+GEE5g4cSLvvfces2bNonPnzvTv37/+eNeuXUkp0b59+/qd+cXm\nbnpJkrbQW29lCk/volS5vva1r/H000832BW/YsUKbr75Zrp06UKPHj0AWLZsWYPntWrVir333puU\n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\n7FP3C1XkAAAAAElFTkSuQmCC\n",
       "text/plain": [
-       "<matplotlib.figure.Figure at 0x117b64750>"
+       "<matplotlib.figure.Figure at 0x116ef70d0>"
       ]
      },
      "metadata": {},
@@ -799,16 +940,17 @@
     }
    ],
    "source": [
-    "plot_ts((.05,.6,.9), \n",
-    "        \"data/ts_feature_comparison_qinit0_rinit0.p\")"
+    "plot_ts((.05,.6,.9), \"data/ts_feature_comparison_qinit0_rinit0.p\")"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## More Granularity\n",
-    "For additional exploration we want to take a step back and see, what else is out there that could make a difference for our agent.\n",
+    "## Further thoughts and Parameter Tuning\n",
+    "For additional exploration we want to take a step back and see, what else is out there that could make a difference for our agent. \n",
+    "\n",
+    "### More granular parameters\n",
     "Looking at the distances in between parameters we chose, we could now go back and redo the feature combination with settings that are closer to the ones we chose. We could either substitute the parameters we have with parameters that are closer in range to the ones we picked or add them to the list.\n",
     "\n",
     "Suggested changes would be:\n",
@@ -822,7 +964,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 52,
+   "execution_count": 14,
    "metadata": {
     "collapsed": false
    },
@@ -841,6 +983,8 @@
        "      <th>no_success</th>\n",
        "      <th>success</th>\n",
        "      <th>steps</th>\n",
+       "      <th>deadline_start</th>\n",
+       "      <th>deadline_end</th>\n",
        "      <th>percentage</th>\n",
        "    </tr>\n",
        "  </thead>\n",
@@ -853,6 +997,8 @@
        "      <td>1.2</td>\n",
        "      <td>98.8</td>\n",
        "      <td>11.0</td>\n",
+       "      <td>29.48</td>\n",
+       "      <td>17.554</td>\n",
        "      <td>59.542556</td>\n",
        "    </tr>\n",
        "  </tbody>\n",
@@ -860,28 +1006,26 @@
        "</div>"
       ],
       "text/plain": [
-       "    alpha  gamma  epsilon  no_success  success  steps  percentage\n",
-       "47   99.0   99.0     0.99         1.2     98.8   11.0   59.542556"
+       "    alpha  gamma  epsilon  no_success  success  steps  deadline_start  \\\n",
+       "47   99.0   99.0     0.99         1.2     98.8   11.0           29.48   \n",
+       "\n",
+       "    deadline_end  percentage  \n",
+       "47        17.554   59.542556  "
       ]
      },
-     "execution_count": 52,
+     "execution_count": 14,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
     "fc_q0r1 = pd.read_csv('data/feature_comparison_granular.csv', sep = ';')\n",
-    "fc_q0r1.sort_values([\n",
-    "        'percentage', \n",
-    "        'steps', \n",
-    "        'success'], \n",
-    "        ascending=[False, True, False]).head(n=1).drop([\n",
-    "        'deadline_start', 'deadline_end'], axis=1)"
+    "fc_q0r1.sort_values(['percentage', 'steps', 'success'], ascending=[False, True, False]).head(n=1)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 53,
+   "execution_count": 15,
    "metadata": {
     "collapsed": false
    },
@@ -890,7 +1034,7 @@
      "data": {
       "image/png": "iVBORw0KGgoAAAANSUhEUgAAAqMAAAFkCAYAAAAUmjL5AAAABHNCSVQICAgIfAhkiAAAAAlwSFlz\nAAAPYQAAD2EBqD+naQAAIABJREFUeJzt3Xuc1VW9//HXZ7yDCg+VS9oxEAwvpMg1MjX1HDX1mOmB\nYcwg/ZVZ3sJfhTKIeMPbOaKYknryYGKEt9Io8+fxaKapFEP5OIGePKJkKoYmJgijsH5/7JlxzzDA\nDLPv+/V8PObxYNZ37e9ee4nMmvd3XSKlhCRJklQMNcVugCRJkqqXg1FJkiQVjYNRSZIkFY2DUUmS\nJBWNg1FJkiQVjYNRSZIkFY2DUUmSJBWNg1FJkiQVjYNRSZIkFY2DUUmSJBVNpwejEXFIRDwYEX+J\niPURcUI7dS6NiNciYnVEPBIRA9tc3y4iboqIFRHx94i4NyJ6d+WDSJIkqfxsSTLaHfg98E1gg4Pt\nI2IScDZwBjASWAU8HBHbZlW7HjgOOBk4FNgduG8L2iJJkqQyFiltMJ7s+Isj1gMnppQezCp7Dbg2\npTSj6fudgeXAhJTS3U3f/xUYl1L6SVOdQcAS4NMppQVb3CBJkiSVlZzOGY2I/kBf4NHmspTSu8Cz\nwOimouHA1m3qvAAsy6ojSZKkKrB1ju/Xl8yj++Vtypc3XQPoAzQ2DVI3VqeViNgVOBp4GViTq8ZK\nklQFtgf6AQ+nlN7K9c0jYk9gt1zfVxVhRUpp2eYq5Xowmi9HA3cVuxGSJJWxLwE/yuUNI2LPmpqa\nF9avX799Lu+rylBTU7MmIgZtbkCa68HoG0CQST+z09E+wKKsOttGxM5t0tE+Tdfa8zLAnDlz2Hff\nfXPaYG3cxIkTmTFjRrGbUVXs88KzzwvPPi+sJUuWcOqpp0LTz9Ic2239+vXb+/NZbTX9vdueTGpe\nuMFoSmlpRLwBHAk8By0LmEYBNzVVWwh82FQnewHTnsDTG7n1GoB9992XoUOH5rLJ2oQePXrY3wVm\nnxeefV549nnR5G2amz+f1RWdHoxGRHdgIJkEFGCviDgQeDul9Gcy2zZNiYgXyfwWdhnwKvAAZBY0\nRcQPgOsi4m/A34GZwFOupJckSaouW5KMDgceI7NQKQH/1lR+B3B6SumaiOgG3AL0BH4NfD6l1Jh1\nj4nAOuBeYDvgl8BZW/QJJEmSVLY6PRhNKf2KzWwJlVKaBkzbxPW1wDlNX5IkKUf+/Gf4h38odiuk\njvNsem1UXV1dsZtQdezzwrPPC88+z4/GRpg6FfbaC371q2K3Ruq4ctnaSUXgD4zCs88Lzz4vPPs8\n9xoa4CtfgSVLYMoUGO0RMiojJqOSJJWpxka4+GIYNQpqauC3v818v+22xW6ZSsW0adOoqSnt4V5p\nt06SJLVr0SIYMQKmT8+koQsWwJAhxW5VZbnjjjuoqamhW7duvP766xtc/9znPscBBxxQhJa19v77\n73PJJZfwxBNPbHAtIhyMSpKk3GmeGzpyJESYhhbC2rVrueqqqzYoj4h2ahfe6tWrueSSS3j88cc3\nuHbRRRexevXqwjeqExyMSpJUJhoaYPhwuPJK09BCGjJkCLfddhtvvLGxgyKLK6W00Ws1NTVsW+K/\nqTgYlSSpxDWnoc4NLbyIYPLkyXz44YftpqNtzZkzh+HDh9OtWzd23XVX6urqePXVVzeod9NNNzFg\nwAC6devGpz/9aZ588kk+97nPccQRR7TU+eCDD5g6dSrDhw+nZ8+e7Ljjjhx66KGtEtBXXnmF3r17\nExEt80Nramq49NJLgQ3njH7qU5/iyCOP3KA9KSX22GMPxo4d26rs+uuvZ/Dgweywww707duXM888\nk3feeadDfddRDkYlSSph2Wlofb1paDH079+f8ePHbzYdveKKK5gwYQKDBg1ixowZTJw4kUcffZTD\nDjuMd999t6XerFmzOOecc9hzzz259tprOeSQQzjxxBP5y1/+0up+7777LrfffjuHH34411xzDZdc\ncgkrVqzgmGOO4bnnngOgV69efP/73yelxEknncScOXOYM2cOJ510EpAZTGdPJ6itreWJJ57gzTff\nbPVev/71r3n99ddb7XZxxhlnMGnSJA455BBmzpzJ6aefzl133cUxxxzDunXrtrxD23BrJ0mSSlBj\nI1x+eWaB0uDBmTS07Aehq1fD88/n9z322Qe6dcv5bevr6/nhD3/I1VdfzYwZMza4/sorrzBt2jSm\nT5/OpEmTWspPOukkhgwZws0338wFF1zQknaOGjWKRx99tCW1POCAA5gwYQL/kHViwS677MLLL7/M\n1lt/NFz72te+xqBBg7jxxhu57bbb6NatGyeffDJnnnkmBxxwAKeccsomP0dtbS1Tp07l3nvv5Zvf\n/GZL+bx589hpp5049thjAXjyySf5wQ9+wNy5c6mtrW2pd/jhh3P00Udzzz33MG7cuE72YvscjEqS\nVGKy9w296CK48MIKeST//PMwbFh+32PhQhg6NOe37d+/P1/+8pe59dZbueCCC+jTp0+r6/fffz8p\nJcaMGcNbb73VUt67d2/23ntvHnvsMS644AJ++9vf8tZbb3H11Ve3enx+yimn8K1vfavVPSOiZSCa\nUuKdd95h3bp1DB8+nIaGhi36HHvvvTdDhgxh3rx5LYPR9evXc99993HCCSew3XbbAXDvvffSs2dP\njjzyyFaf56CDDmLHHXfkscceczAqSVKlqcg0NNs++2QGi/l+jzyZMmUKd955J1ddddUG6eiLL77I\n+vXrGThw4Aavi4iWRUTLli0jIhgwYECrOltttRX9+vXb4LV33HEH1113Hc8//zwffPBBS/lee+21\nxZ+jtraW+vp6Xn/9dT72sY/x2GOP8eabb7ZKQP/0pz/xzjvv0Lt373Y/T9vH/F3hYFSSpBJQsWlo\ntm7d8pJaFkr//v059dRTufXWW1s9iodMulhTU8Mvf/nLdvf13HHHHTv9fnPmzOG0007jpJNO4rvf\n/S69e/dmq622Yvr06bz00ktb/Dlqa2u58MILueeeezj33HO5++676dmzJ0cffXSrz9OnTx9+9KMf\ntbtav1evXlv8/m05GJUkqYgqPg2tMFOmTGHOnDlcffXVrcoHDBhASol+/fq1m442+8QnPkFKiRdf\nfJHDDjuspXzdunW8/PLLHHjggS1l9913HwMGDODee+9tdY+pU6e2+r6z+53269ePkSNHMm/ePM46\n6yx+8pOf8MUvfpFtttmm1ed59NFH+cxnPtPy6D5fXE0vSVKRuG9o+dlrr7049dRTueWWW1qtrD/p\npJOoqanhkksuafd1b7/9NgDDhw9n11135bbbbmP9+vUt1+fMmcPf/va3Vq/ZaqutNrjPs88+y9NP\nP92qrFvTgq3ObLlUW1vLM888w+23386KFStaPaIHGDt2LB9++GHLFlHZ1q1bx8qVKzv8XptjMipJ\nUoGZhpaP9h5R19fXc+edd/LCCy8wePBgIDNIvfzyy5k8eTJLly7lxBNPZKedduKll17ipz/9KV//\n+tc5//zz2WabbZg2bRrnnnsuhx9+OGPHjuXll1/mP/7jPxg4cGCrlPP444/n/vvv58QTT+S4447j\npZde4pZbbmH//ffnvffea6m3/fbbs99++zFv3jz23ntvdtllFwYPHsz++++/0c81duxYvv3tb/Pt\n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\novn/IlJxYO1jzrEAAAAASUVORK5CYII=\n",
       "text/plain": [
-       "<matplotlib.figure.Figure at 0x11767a350>"
+       "<matplotlib.figure.Figure at 0x11765c610>"
       ]
      },
      "metadata": {},
@@ -898,8 +1042,7 @@
     }
    ],
    "source": [
-    "plot_ts((99,99,.99), \n",
-    "        'data/ts_feature_comparison_granular.p')"
+    "plot_ts((99,99,.99), 'data/ts_feature_comparison_granular.p')"
    ]
   },
   {
@@ -919,9 +1062,12 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Initial conditions\n",
+    "### Initial conditions\n",
     "As mentioned before and shown in code we need to initialize states and their q_values that we haven't seen before. This move is inevitable because Q-Learning moves and learns in an iterative fashion. The decision on how to choose these initial conditions is often referred to as being 'arbitrary'. Further research suggested ways to map human behaviour better by resetting the initial condition for a certain action after experiencing it for the first time with its immediate reward. This approach seems to be consistent with human behaviour which was shown in repeated binary choice experiments. High initial values, also known as \"optimistic initial conditions\" can encourage exploration: no matter what action is selected, the update rule will cause it to have lower values than the other alternative, thus increasing their choice probability. \n",
-    "In addition a high initial value tends to favor exploration in the beginning which is intuitively the right move to take when thrown into a new world. With input from [Mark Lee @ University of Alberta](http://webdocs.cs.ualberta.ca/~sutton/book/ebook/node21.html) and [the role of first impression in operant learning](http://psycnet.apa.org/?&fa=main.doiLanding&doi=10.1037/a0029550).\n",
+    "In addition a high initial value tends to favor exploration in the beginning which is intuitively the right move to take when thrown into a new world.\n",
+    "\n",
+    "Input from [Mark Lee @ University of Alberta](http://webdocs.cs.ualberta.ca/~sutton/book/ebook/node21.html)\n",
+    "and [The role of first impression in operant learning](http://psycnet.apa.org/?&fa=main.doiLanding&doi=10.1037/a0029550)\n",
     "\n",
     "First we set the q values to a high initial value to encourage exploration in the beginning. This effect will be smaller though because our action values are being updated to the current reward value at a very early time. \n",
     "\n",
@@ -934,20 +1080,15 @@
     "```python\n",
     "    if (self.q_start_count[action] == 1):\n",
     "        self.q_start[action] = reward\n",
-    "```"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### Action-Reward-Q-value Initialization\n",
+    "```\n",
+    "\n",
+    "#### Action-Reward-Q-value Initialization\n",
     "Given our parameters, we'll try to add the insights we gathered about human behavior when a state is unknown and the action's being taken for the first time adding the new state's reward to it."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 54,
+   "execution_count": 16,
    "metadata": {
     "collapsed": false
    },
@@ -966,6 +1107,8 @@
        "      <th>no_success</th>\n",
        "      <th>success</th>\n",
        "      <th>steps</th>\n",
+       "      <th>deadline_start</th>\n",
+       "      <th>deadline_end</th>\n",
        "      <th>percentage</th>\n",
        "    </tr>\n",
        "  </thead>\n",
@@ -978,6 +1121,8 @@
        "      <td>8.8</td>\n",
        "      <td>91.2</td>\n",
        "      <td>9.6</td>\n",
+       "      <td>30.22</td>\n",
+       "      <td>16.144</td>\n",
        "      <td>53.281207</td>\n",
        "    </tr>\n",
        "  </tbody>\n",
@@ -985,22 +1130,21 @@
        "</div>"
       ],
       "text/plain": [
-       "   alpha  gamma  epsilon  no_success  success  steps  percentage\n",
-       "0     99     99     0.99         8.8     91.2    9.6   53.281207"
+       "   alpha  gamma  epsilon  no_success  success  steps  deadline_start  \\\n",
+       "0     99     99     0.99         8.8     91.2    9.6           30.22   \n",
+       "\n",
+       "   deadline_end  percentage  \n",
+       "0        16.144   53.281207  "
       ]
      },
-     "execution_count": 54,
+     "execution_count": 16,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
     "fc_q0r0 = pd.read_csv('data/feature_comparison_qinit0_rinit1.csv', sep = ';')\n",
-    "fc_q0r0.sort_values([\n",
-    "        'percentage', \n",
-    "        'steps', \n",
-    "        'success'], ascending=[False, True, False]).drop([\n",
-    "        'deadline_start', 'deadline_end'], axis=1)"
+    "fc_q0r0.sort_values(['percentage', 'steps', 'success'], ascending=[False, True, False])"
    ]
   },
   {
@@ -1022,28 +1166,22 @@
     }
    ],
    "source": [
-    "plot_ts((99,99,.99), \n",
-    "        'data/ts_feature_comparison_qinit0_rinit1.p')"
+    "plot_ts((99,99,.99), 'data/ts_feature_comparison_qinit0_rinit1.p')"
    ]
   },
   {
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "This approach seems to perform quite well in the beginning. However it might be possible that the agent learns some sub-optimal actions that are penalizing the learning process later on. In fact the agent only fully recovers after trial 80 and works without additional negative experiences."
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "### High Initial Q-value\n",
+    "This approach seems to perform quite well in the beginning. However it might be possible that the agent learns some sub-optimal actions that are penalizing the learning process later on. In fact the agent only fully recovers after trial 80 and works without additional negative experiences.\n",
+    "\n",
+    "#### High Initial Q-value\n",
     "Let's see what a change in starting values will do the agents performance. At first we're changing only the initial state, bumping it up to 10 instead of a 0 initalization."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 55,
+   "execution_count": 18,
    "metadata": {
     "collapsed": false
    },
@@ -1062,6 +1200,8 @@
        "      <th>no_success</th>\n",
        "      <th>success</th>\n",
        "      <th>steps</th>\n",
+       "      <th>deadline_start</th>\n",
+       "      <th>deadline_end</th>\n",
        "      <th>percentage</th>\n",
        "    </tr>\n",
        "  </thead>\n",
@@ -1074,6 +1214,8 @@
        "      <td>3.0</td>\n",
        "      <td>97.0</td>\n",
        "      <td>7.8</td>\n",
+       "      <td>30.14</td>\n",
+       "      <td>17.948</td>\n",
        "      <td>59.553128</td>\n",
        "    </tr>\n",
        "  </tbody>\n",
@@ -1081,22 +1223,21 @@
        "</div>"
       ],
       "text/plain": [
-       "   alpha  gamma  epsilon  no_success  success  steps  percentage\n",
-       "0     99     99     0.99         3.0     97.0    7.8   59.553128"
+       "   alpha  gamma  epsilon  no_success  success  steps  deadline_start  \\\n",
+       "0     99     99     0.99         3.0     97.0    7.8           30.14   \n",
+       "\n",
+       "   deadline_end  percentage  \n",
+       "0        17.948   59.553128  "
       ]
      },
-     "execution_count": 55,
+     "execution_count": 18,
      "metadata": {},
      "output_type": "execute_result"
     }
    ],
    "source": [
     "fc_q10r0 = pd.read_csv('data/feature_comparison_qinit10_rinit0.csv', sep = ';')\n",
-    "fc_q10r0.sort_values([\n",
-    "        'percentage', \n",
-    "        'steps', \n",
-    "        'success'], ascending=[False, True, False]).drop([\n",
-    "        'deadline_start', 'deadline_end'], axis=1)"
+    "fc_q10r0.sort_values(['percentage', 'steps', 'success'], ascending=[False, True, False])"
    ]
   },
   {
@@ -1118,8 +1259,7 @@
     }
    ],
    "source": [
-    "plot_ts((99,99,.99), \n",
-    "        'data/ts_feature_comparison_qinit10_rinit0.p')"
+    "plot_ts((99,99,.99), 'data/ts_feature_comparison_qinit10_rinit0.p')"
    ]
   },
   {
@@ -1136,19 +1276,27 @@
     "\n",
     "In addition we're choosing a high initial Q-value to balance out the high epsilon value and encourage exploration in the beginning of the learning process. With this setup the agent gets close to finding an optimal policy which is defined by reaching the destination in the minimum possible time without getting any penalties. The agent not only learns the best possible policy but it also learns to act in an optimal way, finding the final destination in the smallest amount of time.\n",
     "\n",
-    "# Further Discussions\n",
+    "## Further Discussions\n",
     "There are a couple points that are not part of this analysis but would be interesting to explore in the future:\n",
     "\n",
     "* Randomness in action is a great way to keep the element of exploration but especially in a production or real-life setting this might be considered dangerous at a certain point.\n",
     "* Implementation of a different $\\epsilon$ strategy (i.e. softmax) might be worth trying out.\n",
     "* Classifying rewards or giving them priority levels might make it possible to add a meta-layer or more context to the choice of action.\n",
-    "* Running the simulation for a longer time or adding additional agents would force difficult and dangerous actions to happen more often and make the learning process better down the road. "
+    "* Running the simulation for a longer time or adding additional agents would force difficult and dangerous actions more often and make the learning process better down the road. "
    ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
   }
  ],
  "metadata": {
   "anaconda-cloud": {},
-  "celltoolbar": "Raw Cell Format",
   "kernelspec": {
    "display_name": "Python [conda root]",
    "language": "python",
