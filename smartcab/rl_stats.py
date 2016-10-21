@@ -1,3 +1,26 @@
+## Quick stats package for plotting and displaying statistical information
+
+# Import necessary libraries
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pylab
+
+def plot_ts(idx, filename):
+    '''
+    Plots time series plot of trial success rate.
+    @idx: (alpha, gamma, epsilon) values of run
+    @filename: 'ts_' + name_of_output - '.csv' + .p'
+    '''
+    data = pd.read_pickle(filename)
+    plt_data = data[idx]
+    
+    plt.plot(np.cumsum(plt_data["neg"]), 'r', label="Negative")
+    plt.plot(np.cumsum(plt_data["pos"]), 'b', label="Positive")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    plt.show()
+
+
 # Draw Sigmoid with given t
 def draw_sigmoid(t):
     '''
@@ -7,8 +30,6 @@ def draw_sigmoid(t):
     '''
     if len(t) > 4 or t < 1:
         raise ValueError("Wrong length of t. (has to be smaller than 4 and can't be < 1.")
-    import numpy as np
-    import pylab
     from scipy.optimize import curve_fit
     
     x = np.linspace(-10, 10, 100)

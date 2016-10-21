@@ -179,8 +179,8 @@ class LearningAgent(Agent):
 
         # Execute action and get reward
         reward = self.env.act(self, action)
-        if (self.q_start_count[action] == 1):
-            self.q_start[action] = reward
+        #if (self.q_start_count[action] == 1):
+        #    self.q_start[action] = reward
         #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
 
         # Learn policy based on state, alpha, gamma and t
@@ -210,7 +210,7 @@ class LearningAgent(Agent):
         import os
 
         # Set folder for output
-        o_dir = 'smartcab/data'
+        o_dir = 'data'
         if not os.path.exists(o_dir):
             os.makedirs(o_dir)
 
@@ -292,9 +292,12 @@ class LearningAgent(Agent):
                         sum_counts_neg = map(add, sum_counts_neg, a.time_count_neg)
                         sum_counts_pos = map(add, sum_counts_pos, a.time_count_pos)
                     
-                    # prep dict for each slot
-                    temp_store['neg'] = sum_counts_neg
-                    temp_store['pos'] = sum_counts_pos
+                    # prep dict for each slot by calculating the average for
+                    # each time step
+                    temp_store['neg'] = map(
+                        lambda x: x/float(cv), sum_counts_neg)
+                    temp_store['pos'] = map(
+                        lambda x: x/float(cv), sum_counts_pos)
                     
                     # Store each slot in one big dict that we can use
                     ts_store[(alpha, gamma, epsilon)] = temp_store
@@ -346,6 +349,7 @@ def run():
     sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
+    '''
     ###
     ### Run the program
 
@@ -408,44 +412,36 @@ def run():
     temp_store['pos'] = sum_counts_pos
     ts_store[(test_alpha, test_gamma, test_epsilon)] = temp_store
     print ts_store
+    '''
 
-    
+    ### Stats for first implementation
+    #a.feature_comparison(output='feature_comparison_baseline.csv',alpha=[.5], gamma=[.5],epsilon=[.8])
 
     ###
     ### Perform feature comparison with a variety of settings
     ### to find best choice of alpha, gamma and epsilon.
 
-    #### Stats for pure e-greedy implementation ####
-    # Make sure lines 82, 84, 110, 112 and 115 are commented out
-    #a.feature_comparison(output='feature_comparison_e_greedy.csv')
-
-
-    #### Stats with normal sigmoid function for epsilon ####
-    # To activate the simple sigmoid function, uncomment line 82
-    #a.feature_comparison(output='feature_comparison_e_greedy_sig_e.csv', epsilon=[1])
-
-    #### Stats with slower sigmoid function for epsilon ####
-    # To activate the sigmoid function for epsilon, uncomment line 84
-    #a.feature_comparison(output='feature_comparison_e_slow_sig.csv', epsilon=[1])
-
-
-    #### Stats with sigmoid function for epsilon ####
-    #### and neg sigmoid function for alpha ####
-    # To activate the sigmoid function for epsilon, uncomment line 82
-    # To activate the sigmoid function for alpha, uncomment line 110
-    #a.feature_comparison(output='feature_comparison_ae_sig.csv', epsilon=[1], alpha=[1])
-
-    #### Stats with slower sigmoid function for epsilon ####
-    #### and slower neg sigmoid function for alpha ####
-    # To activate the sigmoid function for epsilon, uncomment line 84
-    # To activate the sigmoid function for alpha, uncomment line 112
-    #a.feature_comparison(output='feature_comparison_ae_slow_sig.csv', epsilon=[1], alpha=[1])
-
-    #a.feature_comparison(output='feature_comparison_grand_finale.csv')
-    #a.feature_comparison(alpha=[9], gamma=[9], epsilon=[1], output='verify.csv')
-
     # Q_start = 0; no first reward action value
     #a.feature_comparison(output='feature_comparison_qinit0_rinit0.csv')
+
+    # Same setup but more granular parameters
+    #a.feature_comparison(output='feature_comparison_granular.csv', alpha=[.05, .1, .2, 99], gamma=[.6, .7, .8, 99], epsilon=[.9, .95, .99])
+
+    # Q_start = 10; no first reward action value
+    #a.feature_comparison(output='feature_comparison_qinit10_rinit0.csv', alpha=[99], gamma=[99], epsilon=[.99])
+
+    # Q_start = 0; with first reward action value
+    #a.feature_comparison(output='feature_comparison_qinit0_rinit1.csv', alpha=[99], gamma=[99], epsilon=[.99])
+
+
+    # Final run with q_start 10 and r_start 0
+    a.feature_comparison(output='feature_comparison_final2.csv', alpha=[99], gamma=[99], epsilon=[99], ntrials=1000)
+
+
+
+
+
+
 
     # Q_start = 10; no first reward action value
     #a.feature_comparison(output='feature_comparison_qinit10_rinit0.csv')
@@ -454,7 +450,7 @@ def run():
     #a.feature_comparison(output='feature_comparison_qinit0_rinit1.csv')
 
     # Q_start = 10; with first reward action value
-    a.feature_comparison(output='feature_comparison_qinit10_rinit1.csv')
+    #a.feature_comparison(output='feature_comparison_qinit10_rinit1.csv')
 
     #a.feature_comparison(output='drago.csv', epsilon=[1], alpha=[.9], gamma=[.9])
 
