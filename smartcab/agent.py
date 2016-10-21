@@ -1,12 +1,16 @@
-import pandas as pd
-import numpy as np
-import random
+# Import necessary packages
 from collections import Counter
 from environment import Agent, Environment
 from operator import add
 from planner import RoutePlanner
 from simulator import Simulator
+
 import math
+import numpy as np
+import os
+import pandas as pd
+import pickle
+import random
 
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world."""
@@ -181,6 +185,7 @@ class LearningAgent(Agent):
         reward = self.env.act(self, action)
         #if (self.q_start_count[action] == 1):
         #    self.q_start[action] = reward
+
         #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
 
         # Learn policy based on state, alpha, gamma and t
@@ -202,13 +207,14 @@ class LearningAgent(Agent):
         cv = 5,
         ntrials = 100):
         '''
-        Do feature comparison based on sets of list.
-        @cv: number of crossvalidation steps
+        Feature comparison based on sets of list.
+        @alpha: list of alpha values
+        @gamma: list of gamma values
+        @epsilon: list of epsilon values
+        @cv: number of validation steps
         @ntrials: amount of trial runs
-        Saves output in static file in smartcab/data/
+        Saves output in static file in 'data/'
         '''
-        import os
-
         # Set folder for output
         o_dir = 'data'
         if not os.path.exists(o_dir):
@@ -262,14 +268,7 @@ class LearningAgent(Agent):
                     	# Run simulation n_trials times
                         sim.run(n_trials=ntrials)
                         
-                        #print "Deadline Start Col:"
-                        #print len(a.deadline_start_col)
-                        #print a.deadline_start_col
-        
-                        #print "Deadline End Col:"
-                        #print len(a.deadline_end_col)
-                        #print a.deadline_end_col
-                        
+                        # Deal with temp data and store
                         a.trial_summary[3] = np.mean(a.deadline_start_col)
                         a.trial_summary[4] = np.mean(a.deadline_end_col)
                         a.trial_summary[5] = (a.trial_summary[4] / a.trial_summary[3])*100
@@ -277,7 +276,7 @@ class LearningAgent(Agent):
                         success_temp.index = ['no_success', 'success', 'steps', 'deadline_start', 'deadline_finish', 'percentage']
                         temp_column_name = 'trial_count_' + str(i+1)
                         success_summary[temp_column_name] = success_temp
-                        # Reset counter
+                        # Reset counter and temp data
                         a.trial_summary[0] = 0
                         a.trial_summary[1] = 0
                         a.trial_summary[2] = 0
@@ -330,10 +329,7 @@ class LearningAgent(Agent):
         # Write data frame to disk
         summary_comp.to_csv(o_dir + '/' + output, header = True, index = None, sep = ';', mode = 'a')
 
-        import pickle
         pickle.dump(ts_store, open(o_dir + '/ts_' + output.split('.')[0] + '.p', 'wb'))
-
-
 
 
 def run():
@@ -346,78 +342,17 @@ def run():
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
     # Now simulate it
-    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
+    sim = Simulator(e, update_delay=0.5, display=True)  # create simulator (uses pygame when display=True, if available)
     # NOTE: To speed up simulation, reduce update_delay and/or set display=False
 
-    '''
     ###
-    ### Run the program
+    ### Run the program without stats
+    sim.run(n_trials=100)  # run for a specified number of trials
+    # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 
-    # Stats for trial summary
-    success_summary = pd.DataFrame(index = ['no_success', 'success', 'steps', 'deadline_start', 'deadline_finish', 'percentage'])
-    validation_no = 2
-
-    sum_counts_pos = [0] * 100
-    sum_counts_neg = [0] * 100
-
-    ts_store = {}
-    temp_store = {}
-
-    for i in range(validation_no):
-        test_alpha = 0.05
-        test_gamma = 0.90
-        test_epsilon = 1
-
-        sim.run(n_trials=100)  # run for a specified number of trials
-        # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
-
-        # Print trial count and create stats for single trial
-        print "Trial Count: ", a.trial_count
-        a.trial_summary[3] = np.mean(a.deadline_start_col)
-        a.trial_summary[4] = np.mean(a.deadline_end_col)
-        a.trial_summary[5] = (a.trial_summary[4] / a.trial_summary[3])*100
-        success_temp = pd.DataFrame.from_dict(a.trial_summary, orient='index')
-        success_temp.index = ['no_success', 'success', 'steps', 'deadline_start', 'deadline_finish', 'percentage']
-        temp_column_name = 'trial_count_' + str(i+1)
-        success_summary[temp_column_name] = success_temp
-        # Reset statistic data for each trial
-        a.trial_summary[0] = 0
-        a.trial_summary[1] = 0
-        a.trial_summary[2] = 0
-        a.trial_summary[3] = 0
-        a.trial_summary[4] = 0
-        a.trial_summary[5] = 0
-
-        print
-        print
-        print "*" * 30
-        print "Neg Count: ", len(a.time_count_neg)
-        sum_counts_neg = map(add, sum_counts_neg, a.time_count_neg)
-        
-        print sum_counts_neg
-
-        print "Pos Count: ", len(a.time_count_pos)
-        sum_counts_pos = map(add, sum_counts_pos, a.time_count_pos)
-        
-        print sum_counts_pos
-        print "*" * 30
-
-        print success_summary
-        success_average = success_summary.mean(axis=1)[0:]
-        print "Average: "
-        print success_average
-        print "Accuracy: ", min(success_average) / max(success_average) 
-    
-    temp_store['neg'] = sum_counts_neg
-    temp_store['pos'] = sum_counts_pos
-    ts_store[(test_alpha, test_gamma, test_epsilon)] = temp_store
-    print ts_store
-    '''
-
-    ### Stats for first implementation
-    #a.feature_comparison(output='feature_comparison_baseline.csv',alpha=[.5], gamma=[.5],epsilon=[.8])
 
     ###
+    ### Stats for analysis
     ### Perform feature comparison with a variety of settings
     ### to find best choice of alpha, gamma and epsilon.
 
@@ -432,32 +367,6 @@ def run():
 
     # Q_start = 0; with first reward action value
     #a.feature_comparison(output='feature_comparison_qinit0_rinit1.csv', alpha=[99], gamma=[99], epsilon=[.99])
-
-
-    # Final run with q_start 10 and r_start 0
-    a.feature_comparison(output='feature_comparison_final2.csv', alpha=[99], gamma=[99], epsilon=[99], ntrials=1000)
-
-
-
-
-
-
-
-    # Q_start = 10; no first reward action value
-    #a.feature_comparison(output='feature_comparison_qinit10_rinit0.csv')
-
-    # Q_start = 0; with first reward action value
-    #a.feature_comparison(output='feature_comparison_qinit0_rinit1.csv')
-
-    # Q_start = 10; with first reward action value
-    #a.feature_comparison(output='feature_comparison_qinit10_rinit1.csv')
-
-    #a.feature_comparison(output='drago.csv', epsilon=[1], alpha=[.9], gamma=[.9])
-
-    
-    
-    #a.feature_comparison(output='test_all.csv')
-    #a.feature_comparison(output='feature_comparison_all.csv')
 
 if __name__ == '__main__':
     run()
