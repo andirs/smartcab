@@ -40,6 +40,7 @@ class LearningAgent(Agent):
         # Set randomness threshold
         self.epsilon = .95
         self.q_start = {None : 10, 'forward': 10, 'left': 10, 'right': 10}
+        #self.q_start = {None : 0, 'forward': 0, 'left': 0, 'right': 0}
         self.q_start_count = {None : 0, 'forward': 0, 'left': 0, 'right': 0}
 
         # Initialize variables to store previous state, reward amd action
@@ -178,8 +179,8 @@ class LearningAgent(Agent):
 
         # Execute action and get reward
         reward = self.env.act(self, action)
-        #if (self.q_start_count[action] == 1):
-        #    self.q_start[action] = reward
+        if (self.q_start_count[action] == 1):
+            self.q_start[action] = reward
         #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
 
         # Learn policy based on state, alpha, gamma and t
@@ -198,7 +199,7 @@ class LearningAgent(Agent):
         alpha = [.05, .3, .6, .9, 1, 9, 99], 
         gamma = [.05, .3, .6, .9, 1, 9, 99],
         epsilon = [.05, .3, .6, .9, 1, 9, 99],
-        cv = 1,
+        cv = 5,
         ntrials = 100):
         '''
         Do feature comparison based on sets of list.
@@ -325,7 +326,6 @@ class LearningAgent(Agent):
                 'percentage'])
         # Write data frame to disk
         summary_comp.to_csv(o_dir + '/' + output, header = True, index = None, sep = ';', mode = 'a')
-        print ts_store
 
         import pickle
         pickle.dump(ts_store, open(o_dir + '/ts_' + output.split('.')[0] + '.p', 'wb'))
@@ -443,7 +443,19 @@ def run():
 
     #a.feature_comparison(output='feature_comparison_grand_finale.csv')
     #a.feature_comparison(alpha=[9], gamma=[9], epsilon=[1], output='verify.csv')
-    a.feature_comparison(output='feature_comparison_all.csv')
+
+    # Q_start = 0; no first reward action value
+    #a.feature_comparison(output='feature_comparison_qinit0_rinit0.csv')
+
+    # Q_start = 10; no first reward action value
+    #a.feature_comparison(output='feature_comparison_qinit10_rinit0.csv')
+
+    # Q_start = 0; with first reward action value
+    #a.feature_comparison(output='feature_comparison_qinit0_rinit1.csv')
+
+    # Q_start = 10; with first reward action value
+    a.feature_comparison(output='feature_comparison_qinit10_rinit1.csv')
+
     #a.feature_comparison(output='drago.csv', epsilon=[1], alpha=[.9], gamma=[.9])
 
     
