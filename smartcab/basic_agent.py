@@ -13,17 +13,38 @@ class LearningAgent(Agent):
         self.color = 'taxi'  # override color
         self.planner = RoutePlanner(self.env, self)  # simple route planner to get next_waypoint
         # TODO: Initialize any additional variables here
+
+        # Simple statistical counter variables
         self.trial_count = 0
         self.trial_summary = {}
         for i in range(2):
             self.trial_summary[i] = 0
+        self.cycles = 0
+        self.time_count_pos = {}
+        self.time_count_neg = {}
+        self.deadline_start_col = [0] * 100
+        self.deadline_end_col = [0] * 100
+
+
+    def deadline_stats(self, start, deadline):
+        if (start):
+            self.deadline_start_col.append(deadline)
+        elif not start:
+            self.deadline_end_col.append(deadline)
+
+    def success_stats(self, suc):
+        if (suc):
+            self.trial_summary[1] += 1
+            self.time_count_pos[self.cycles] += 1
+        else:
+            self.trial_summary[0] += 1
+            self.time_count_neg[self.cycles] += 1
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
         # TODO: Prepare for a new trip; reset any variables here, if required
         self.trial_count = 0
-        #self.trial_summary[0] = 0
-        #self.trial_summary[1] = 0
+        self.cycles += 1
 
     def update(self, t):
         # Gather inputs
@@ -42,18 +63,6 @@ class LearningAgent(Agent):
         # TODO: Learn policy based on state, action, reward
 
         print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
-
-        if (deadline == 0) & (reward < 8):
-            self.trial_summary[0] += 1
-            print "#" * 20
-            print "Trial was unsuccessful."
-            print "#" * 20
-        else:
-            if (reward >= 8):
-                self.trial_summary[1] += 1
-                print "#" * 20
-                print "Trial was successful."
-                print "#" * 20
 
 def run():
     """Run the agent for a finite number of trials."""
@@ -78,11 +87,10 @@ def run():
         success_temp = pd.DataFrame.from_dict(a.trial_summary, orient='index')
         success_temp.index = ['no_success', 'success']
         temp_column_name = 'trial_count_' + str(i+1)
-        #success_temp.columns = [temp_column_name]
         success_summary[temp_column_name] = success_temp
         a.trial_summary[0] = 0
         a.trial_summary[1] = 0
-    #print "Arrived", Counter(a.trial_summary.values()).most_common()[1][1], "times."
+    
     print success_summary
     success_average = success_summary.mean(axis=1)
     print "Average: "
@@ -93,6 +101,7 @@ def run():
     filename = 'smartcab/data/basic_agent_trials.csv'
     filename = os.path.join(filename)
     success_summary.to_csv(filename)
+    print success_summary
 
 if __name__ == '__main__':
     run()
